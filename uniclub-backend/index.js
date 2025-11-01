@@ -76,7 +76,7 @@ const mongoOptions = {
 mongoose.connect(mongoUri, mongoOptions)
   .then(async () => {
     console.log('✅ Connected to MongoDB');
-    console.log('📂 Database name:', mongoose.connection.db.databaseName);
+    console.log('📂 Database name:', mongoose.connection.db?.databaseName || 'connected');
     
     // Skip heavy queries on startup - just test connectivity
     try {

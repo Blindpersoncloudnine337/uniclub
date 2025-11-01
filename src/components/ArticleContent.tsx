@@ -55,7 +55,7 @@ const ArticleContent: React.FC<ArticleContentProps> = ({ content, summary, origi
 
       {/* Read Original Button - Refined Design */}
       {originalUrl && (
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+        <div className="mt-8 pt-6">
           <div className="flex justify-center">
             <button 
               onClick={handleReadOriginal}

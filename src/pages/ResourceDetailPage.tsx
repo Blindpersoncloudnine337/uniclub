@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Download, ExternalLink, Eye, Heart, MessageCircle, Share2, Clock, Tag, User } from 'lucide-react';
 import InteractionButtons from '../components/InteractionButtons';
+import BackNavigation from '../components/BackNavigation';
+import api from '../lib/axios';
 
 const ResourceDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(0);
+  
+  // Get referrer from navigation state, default to /resources
+  const referrer = location.state?.referrer || '/resources';
 
   // Fetch resource data from API
   const { data: resource, isLoading, error } = useQuery({
@@ -44,23 +50,70 @@ const ResourceDetailPage: React.FC = () => {
     }
   }, [resource]);
 
+  // NOTE: Views are now ONLY tracked when user clicks the View/Open button
+  // This ensures each user is counted only once and tracking happens on actual engagement
+
   const handleLike = () => {
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
     // TODO: Call API to update likes
   };
 
-  const handleDownload = () => {
-    if (resource?.fileUrl) {
-      window.open(resource.fileUrl, '_blank');
-      // TODO: Call API to track download
+  const handleDownload = async () => {
+    // Check new file field first, fallback to old fileUrl for backward compatibility
+    const fileUrl = resource?.file?.url || resource?.fileUrl;
+    
+    if (fileUrl) {
+      // Track download - ONLY counted once per user
+      try {
+        const response = await api.post(`/api/resources/${id}/download`);
+        if (response.data.newDownload) {
+          console.log('✅ Download tracked successfully');
+        } else {
+          console.log('ℹ️ You already downloaded this resource');
+        }
+      } catch (error) {
+        console.error('Failed to track download:', error);
+        // Still allow download even if tracking fails
+      }
+      
+      // Download the file
+      if (resource?.file?.type === 'upload') {
+        // For uploaded files, trigger download with filename
+        const baseURL = import.meta.env.DEV ? 'http://localhost:5000' : (import.meta.env.VITE_API_URL || '');
+        const link = document.createElement('a');
+        link.href = `${baseURL}${fileUrl}`;
+        link.download = resource.file.originalName || 'download.pdf';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // For external links or old fileUrl, open in new tab
+        window.open(fileUrl, '_blank');
+      }
     }
   };
 
-  const handleView = () => {
-    if (resource?.fileUrl) {
-      window.open(resource.fileUrl, '_blank');
-      // TODO: Call API to track view
+  const handleView = async () => {
+    // Check new file field first, fallback to old fields for backward compatibility
+    const viewUrl = resource?.file?.type === 'link' ? resource.file.url : (resource?.linkUrl || resource?.file?.url || resource?.fileUrl);
+    
+    if (viewUrl) {
+      // Track view - ONLY counted once per user
+      try {
+        const response = await api.post(`/api/resources/${id}/view`);
+        if (response.data.newView) {
+          console.log('✅ View tracked successfully');
+        } else {
+          console.log('ℹ️ You already viewed this resource');
+        }
+      } catch (error) {
+        console.error('Failed to track view:', error);
+        // Still allow viewing even if tracking fails
+      }
+      
+      window.open(viewUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -114,12 +167,14 @@ const ResourceDetailPage: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Resource Not Found</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">The resource you're looking for doesn't exist.</p>
-          <button
-            onClick={() => navigate('/resources')}
-            className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors"
-          >
-            Back to Resources
-          </button>
+          <BackNavigation
+            referrer={referrer}
+            contentType="resource"
+            fallbackReferrer="/resources"
+            sticky={false}
+            showBorder={false}
+            className="inline-block"
+          />
         </div>
       </div>
     );
@@ -127,102 +182,104 @@ const ResourceDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Header */}
-      <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 z-10">
-        <div className="px-4 py-4">
-          <button
-            onClick={() => navigate('/resources')}
-            className="flex items-center text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Resources
-          </button>
-        </div>
-      </div>
+      {/* Back Navigation Header */}
+      <BackNavigation
+        referrer={referrer}
+        contentType="resource"
+        fallbackReferrer="/resources"
+      />
 
       {/* Content */}
-      <div className="px-4 py-6">
-        {/* Resource Header */}
-        <div className="mb-8">
-          {/* Resource Type & Category */}
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-              <span className="text-emerald-600 dark:text-emerald-400">
-                {getResourceIcon(resource.type)}
-              </span>
-              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                {resource.type}
-              </span>
-            </div>
-            
-            <div className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {resource.category}
-              </span>
-            </div>
-          </div>
-
-          {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            {resource.title}
-          </h1>
-
-          {/* Description */}
-          <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-6">
-            {resource.description}
-          </p>
-
-          {/* Meta Information */}
-          <div className="space-y-3 mb-6">
-            {/* Dynamic Views/Downloads based on resource type */}
-            {(resource.type === 'Document' || resource.type === 'Tool') ? (
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Download className="w-4 h-4" />
-                <span className="text-sm">{resource.downloadCount || 0} downloads</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Eye className="w-4 h-4" />
-                <span className="text-sm">{resource.views || 0} views</span>
-              </div>
-            )}
-            
-            {resource.fileSize && resource.type !== 'Video' && resource.type !== 'Tutorial' && (
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">{resource.fileSize}</span>
-              </div>
-            )}
-
-            {/* Engagement Section - Moved up */}
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
-              <InteractionButtons
-                contentType="Resource"
-                contentId={resource._id}
-                engagement={{
-                  likes: resource.likes || 0,
-                  saves: resource.saves || 0,
-                  shares: resource.shares || 0
-                }}
-                onCommentClick={() => navigate(`/comments/resource/${resource._id}`)}
-                shareTitle={resource.title}
-                shareType="resource"
-                layout="horizontal"
-                size="md"
-                showSave={true}
-                showBorder={false}
-                noBg={true}
-              />
-            </div>
-
-            {resource.uploadedBy && (
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <User className="w-4 h-4" />
-                <span className="text-sm">
-                  {resource.uploadedBy.name || 'AI Club Admin'}
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Resource Header */}
+          <div className="mb-8">
+            {/* Resource Type & Category */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  {getResourceIcon(resource.type)}
+                </span>
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  {resource.type}
                 </span>
               </div>
-            )}
+
+              <div className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {resource.category}
+                </span>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              {resource.title}
+            </h1>
+
+            {/* Description */}
+            <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-6">
+              {resource.description}
+            </p>
+
+            {/* Meta Information */}
+            <div className="space-y-3 mb-6">
+              {/* Dynamic Views/Downloads based on resource type */}
+              {resource.type === 'Document' ? (
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <Download className="w-4 h-4" />
+                  <span className="text-sm">{resource.downloadCount || 0} downloads</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <Eye className="w-4 h-4" />
+                  <span className="text-sm">{resource.views || 0} views</span>
+                </div>
+              )}
+
+              {(resource.file?.size || resource.fileSize) && resource.type === 'Document' && (
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">
+                    {resource.file?.size 
+                      ? `${(resource.file.size / 1024).toFixed(2)} KB`
+                      : resource.fileSize
+                    }
+                  </span>
+                </div>
+              )}
+
+              {/* Engagement Section - Moved up */}
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+                <InteractionButtons
+                  contentType="Resource"
+                  contentId={resource._id}
+                  engagement={{
+                    likes: resource.likes || 0,
+                    saves: resource.saves || 0,
+                    shares: resource.shares || 0
+                  }}
+                  onCommentClick={() => navigate(`/comments/resource/${id}`, {
+                    state: { referrer: location.pathname }
+                  })}
+                  shareTitle={resource.title}
+                  shareType="resource"
+                  layout="horizontal"
+                  size="md"
+                  showSave={true}
+                  showBorder={false}
+                  noBg={true}
+                />
+              </div>
+
+              {resource.uploadedBy && (
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">
+                    {resource.uploadedBy.name || 'AI Club Admin'}
+                  </span>
+                </div>
+              )}
           </div>
         </div>
 
@@ -263,7 +320,9 @@ const ResourceDetailPage: React.FC = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-600 dark:hover:border-emerald-400 rounded-xl transition-all duration-200 font-medium text-sm"
               >
                 <ExternalLink className="w-5 h-5" />
-                {resource.type === 'Video' ? 'Watch Video' : 'View Resource'}
+                {resource.type === 'Video' ? 'Watch Video' : 
+                 resource.type === 'Tool' ? 'Explore' : 
+                 resource.type === 'Tutorial' ? 'Learn More' : 'View Resource'}
               </button>
             )}
           </div>
@@ -278,6 +337,7 @@ const ResourceDetailPage: React.FC = () => {
             <p>Related resources will be shown here based on tags and category.</p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

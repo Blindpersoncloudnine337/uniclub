@@ -169,6 +169,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
 
   // Handle delete avatar
   const handleDeleteAvatar = async () => {
+    // TODO: Replace with custom confirmation dialog
     if (!confirm('Are you sure you want to remove your profile picture?')) return;
     
     try {

@@ -39,15 +39,18 @@ class ContentCurationService {
    */
   async fetchAllContent() {
     console.log('📥 Fetching all content from database...');
-    
+
     const [news, events, socialPosts] = await Promise.all([
       News.find({ status: 'approved' }).sort({ publishedAt: -1 }).limit(50),
-      Event.find({ status: 'published' }).sort({ startDate: -1 }).limit(50),
+      Event.find({
+        status: 'published',
+        startDate: { $gte: new Date() } // Only upcoming events for AI ranking
+      }).sort({ startDate: -1 }).limit(50),
       SocialPost.find({}).sort({ createdAt: -1 }).limit(50)
     ]);
 
-    console.log(`📊 Content fetched: ${news.length} news, ${events.length} events, ${socialPosts.length} social posts`);
-    
+    console.log(`📊 Content fetched: ${news.length} news, ${events.length} upcoming events, ${socialPosts.length} social posts`);
+
     return {
       news,
       events,
@@ -181,21 +184,25 @@ class ContentCurationService {
   async getHomepageContent() {
     try {
       console.log('🏠 Fetching homepage content (top 3 per category)...');
-      
+
       const [newsTop3, eventsTop3, socialTop3] = await Promise.all([
         News.find({ isTop3: true, status: 'approved' }).sort({ publishedAt: -1 }).limit(3),
-        Event.find({ isTop3: true, status: 'published' }).sort({ startDate: -1 }).limit(3),
+        Event.find({
+          isTop3: true,
+          status: 'published',
+          startDate: { $gte: new Date() } // Only upcoming events
+        }).sort({ startDate: -1 }).limit(3),
         SocialPost.find({ isTop3: true }).sort({ createdAt: -1 }).limit(3)
       ]);
-      
-      console.log(`🏠 Homepage content: ${newsTop3.length} news, ${eventsTop3.length} events, ${socialTop3.length} social`);
-      
+
+      console.log(`🏠 Homepage content: ${newsTop3.length} news, ${eventsTop3.length} upcoming events, ${socialTop3.length} social`);
+
       return {
         news: newsTop3,
         events: eventsTop3,
         social: socialTop3
       };
-      
+
     } catch (error) {
       console.error('❌ Error fetching homepage content:', error.message);
       throw error;
@@ -203,78 +210,78 @@ class ContentCurationService {
   }
 
   /**
-   * Get featured content for hero section (#1 per category based on engagement)
+   * Get featured content for hero section (#2 per category based on engagement)
    * Updated to use engagement metrics instead of isFeatured flags
    */
   async getFeaturedContent() {
     try {
-      console.log('🌟 Fetching featured content (#1 per category based on engagement)...');
-      
+      console.log('🌟 Fetching featured content (#2 per category based on engagement)...');
+
       const Resource = require('../models/Resource');
-      
-      const [featuredNews, featuredEvent, featuredResource] = await Promise.all([
-        // Featured news (highest likes)
+
+      const [featuredNews, featuredEvents, featuredResources] = await Promise.all([
+        // Featured news (top 2 highest likes)
         (async () => {
-          const news = await News.findOne({ status: 'approved' })
+          const news = await News.find({ status: 'approved' })
             .populate('author', 'name uniqueId')
-            .sort({ 'engagement.likes': -1, publishedAt: -1 }); // Sort by likes first, then recency
-          
-          console.log('🌟 Featured news selected:', news ? `"${news.title}" with ${news.engagement?.likes || 0} likes` : 'none');
+            .sort({ 'engagement.likes': -1, publishedAt: -1 }) // Sort by likes first, then recency
+            .limit(2);
+
+          console.log('🌟 Featured news selected:', news.length > 0 ? `${news.length} articles` : 'none');
           return news;
         })(),
-        
-        // Featured event (highest likes)
+
+        // Featured events (top 2 highest likes, only upcoming events)
         (async () => {
-          const event = await Event.findOne({ status: 'published' })
+          const events = await Event.find({
+            status: 'published',
+            startDate: { $gte: new Date() } // Only upcoming events
+          })
             .populate('organizer', 'name uniqueId')
-            .sort({ 'engagement.likes': -1, startDate: 1 }); // Sort by likes first, then upcoming date
-          
-          console.log('🌟 Featured event selected:', event ? `"${event.title}" with ${event.engagement?.likes || 0} likes` : 'none');
-          return event;
+            .sort({ 'engagement.likes': -1, startDate: 1 }) // Sort by likes first, then upcoming date
+            .limit(2);
+
+          console.log('🌟 Featured events selected:', events.length > 0 ? `${events.length} events` : 'none');
+          return events;
         })(),
-        
-        // Featured resource (highest downloads for docs/tools, highest views for videos/tutorials)
+
+        // Featured resources (top 2 highest downloads for docs/tools, highest views for videos/tutorials)
         (async () => {
           // Get all approved resources
           const allResources = await Resource.find({ isApproved: true })
             .populate('uploadedBy', 'name uniqueId');
-          
-          if (allResources.length === 0) return null;
-          
+
+          if (allResources.length === 0) return [];
+
           // Sort by engagement score (downloads for docs/tools, views for videos/tutorials)
           const sortedResources = allResources.sort((a, b) => {
-            const aScore = (a.type === 'Document' || a.type === 'Tool') 
-              ? (a.downloadCount || 0) 
+            const aScore = (a.type === 'Document' || a.type === 'Tool')
+              ? (a.downloadCount || 0)
               : (a.views || 0);
-            const bScore = (b.type === 'Document' || b.type === 'Tool') 
-              ? (b.downloadCount || 0) 
+            const bScore = (b.type === 'Document' || b.type === 'Tool')
+              ? (b.downloadCount || 0)
               : (b.views || 0);
             return bScore - aScore; // Sort by engagement score descending
           });
-          
-          const resource = sortedResources[0];
-          const engagementScore = (resource.type === 'Document' || resource.type === 'Tool') 
-            ? (resource.downloadCount || 0) 
-            : (resource.views || 0);
-          const metricType = (resource.type === 'Document' || resource.type === 'Tool') ? 'downloads' : 'views';
-          
-          console.log('🌟 Featured resource selected:', resource ? `"${resource.title}" with ${engagementScore} ${metricType}` : 'none');
-          return resource;
+
+          const resources = sortedResources.slice(0, 2);
+          console.log('🌟 Featured resources selected:', resources.length > 0 ? `${resources.length} resources` : 'none');
+          return resources;
         })()
       ]);
-      
+
       console.log('🌟 Featured content summary:', {
-        news: featuredNews ? `${featuredNews.title.substring(0, 50)}... (${featuredNews.engagement?.likes || 0} likes)` : 'none',
-        event: featuredEvent ? `${featuredEvent.title.substring(0, 50)}... (${featuredEvent.engagement?.likes || 0} likes)` : 'none',
-        resource: featuredResource ? `${featuredResource.title.substring(0, 50)}... (${featuredResource.type})` : 'none'
+        news: featuredNews.length > 0 ? `${featuredNews.length} articles` : 'none',
+        events: featuredEvents.length > 0 ? `${featuredEvents.length} events` : 'none',
+        resources: featuredResources.length > 0 ? `${featuredResources.length} resources` : 'none'
       });
-      
+
       return {
         news: featuredNews,
-        events: featuredEvent, // Note: keeping 'events' key for compatibility
-        resource: featuredResource
+        events: featuredEvents,
+        resources: featuredResources
       };
-      
+
     } catch (error) {
       console.error('❌ Error fetching featured content:', error.message);
       throw error;

@@ -89,7 +89,7 @@ const InteractionButtons: React.FC<InteractionButtonsProps> = ({
   useEffect(() => {
     const fetchCommentCount = async () => {
       if (!contentType || !contentId) return;
-      
+
       try {
         const backendContentType = mapContentType(contentType);
         console.log('🔍 Fetching comment count:', {
@@ -99,7 +99,7 @@ const InteractionButtons: React.FC<InteractionButtonsProps> = ({
           url: `/api/comments/${backendContentType}/${contentId}/count`,
           baseURL: api.defaults.baseURL
         });
-                       const response = await api.get(`/api/comments/${backendContentType}/${contentId}/count?t=${Date.now()}`);
+        const response = await api.get(`/api/comments/${backendContentType}/${contentId}/count?t=${Date.now()}`);
         console.log('✅ Comment count response:', response.data);
         setRealTimeCommentCount(response.data.totalCount || 0); // Use totalCount to match what user sees in comments
       } catch (error) {
@@ -108,7 +108,7 @@ const InteractionButtons: React.FC<InteractionButtonsProps> = ({
         setRealTimeCommentCount(0);
       }
     };
-    
+
     fetchCommentCount();
   }, [contentType, contentId]);
 
@@ -166,63 +166,55 @@ const InteractionButtons: React.FC<InteractionButtonsProps> = ({
       case 'event':
         return 'bg-transparent dark:bg-[#001A10] border border-emerald-300 dark:border-[#00150C]';
       case 'resource':
-        // Generate lighter version of the resource type color for engagement bar
-        if (resourceType) {
-          switch (resourceType) {
-            case 'Document':
-              return 'bg-transparent dark:bg-blue-950 border border-blue-300 dark:border-blue-900';
-            case 'Video':
-              return 'bg-transparent dark:bg-red-950 border border-red-300 dark:border-red-900';
-            case 'Tutorial':
-              return 'bg-transparent dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-900';
-            case 'Tool':
-              return 'bg-transparent dark:bg-purple-950 border border-purple-300 dark:border-purple-900';
-            default:
-              return 'bg-transparent dark:bg-gray-950 border border-gray-300 dark:border-gray-900';
-          }
-        }
-        return 'bg-transparent dark:bg-blue-950 border border-blue-300 dark:border-blue-900';
+        return 'bg-transparent dark:bg-gray-950 border border-gray-300 dark:border-gray-900';
       case 'social':
-        return 'bg-transparent dark:bg-[#020B1A] border border-slate-300 dark:border-[#0F172A]';
+        return 'bg-transparent dark:bg-[#0A1426] border border-slate-300 dark:border-[#1E293B]';
       default:
         return 'bg-transparent dark:bg-gray-950 border border-gray-300 dark:border-gray-900';
     }
   };
 
+  // Adjust spacing based on size only
+  const spacingClass = size === 'sm' ? 'space-x-3' : 'space-x-6';
+  const paddingClass = size === 'sm' ? 'p-2' : 'p-3';
+  const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  const textSize = size === 'sm' ? 'text-xs' : 'text-sm';
+  const buttonSpacing = size === 'sm' ? 'space-x-1' : 'space-x-2';
+  
   return (
     <>
-      <div className={`flex items-center justify-between p-3 rounded-lg ${
+      <div className={`flex items-center justify-between ${paddingClass} rounded-lg transition-colors duration-200 ${
         noBg ? '' : getCardTypeBackground()
-      }`}>
-        <div className="flex items-center space-x-6">
+      } ${cardType === 'social' ? 'hover:bg-[#0F172A]' : ''}`}>
+        <div className={`flex items-center ${spacingClass}`}>
           {/* Like Button */}
           <button 
             onClick={handleLikeClick}
             disabled={loading}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors"
+            className={`flex items-center ${buttonSpacing} text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors`}
           >
-            <Heart className={`w-5 h-5 ${
+            <Heart className={`${iconSize} ${
               userEngagement?.liked ? 'text-red-500 fill-red-500' : ''
             }`} />
-            <span className="font-medium">{formatCount(stats.totalLikes)}</span>
+            <span className={`font-medium ${textSize}`}>{formatCount(stats.totalLikes)}</span>
           </button>
 
           {/* Comment Button */}
           <button 
             onClick={onCommentClick}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors"
+            className={`flex items-center ${buttonSpacing} text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors`}
           >
-            <MessageCircle className="w-5 h-5" />
-            <span className="font-medium">{formatCount(realTimeCommentCount)}</span>
+            <MessageCircle className={iconSize} />
+            <span className={`font-medium ${textSize}`}>{formatCount(realTimeCommentCount)}</span>
           </button>
 
           {/* Share Button */}
           <button 
             onClick={handleShareButtonClick}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-emerald-500 transition-colors"
+            className={`flex items-center ${buttonSpacing} text-gray-600 dark:text-gray-400 hover:text-emerald-500 transition-colors`}
           >
-            <Share2 className="w-5 h-5" />
-            <span className="font-medium">{formatCount(stats.totalShares)}</span>
+            <Share2 className={iconSize} />
+            <span className={`font-medium ${textSize}`}>{formatCount(stats.totalShares)}</span>
           </button>
         </div>
 
@@ -231,9 +223,9 @@ const InteractionButtons: React.FC<InteractionButtonsProps> = ({
           <button 
             onClick={handleSaveClick}
             disabled={loading}
-            className="text-gray-600 dark:text-gray-400 hover:text-emerald-500 transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-emerald-500 transition-colors flex-shrink-0"
           >
-            <Bookmark className={`w-5 h-5 ${
+            <Bookmark className={`${iconSize} ${
               userEngagement?.saved ? 'text-emerald-500 fill-emerald-500' : ''
             }`} />
           </button>

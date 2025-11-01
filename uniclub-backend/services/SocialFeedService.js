@@ -1,7 +1,5 @@
 const SocialPost = require('../models/SocialPost');
 const Follow = require('../models/Follow');
-const Group = require('../models/Group');
-const GroupMembership = require('../models/GroupMembership');
 const SocialInteraction = require('../models/SocialInteraction');
 const CacheService = require('./CacheService');
 

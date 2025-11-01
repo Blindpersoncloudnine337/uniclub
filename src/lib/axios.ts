@@ -2,9 +2,9 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  // In development, use empty baseURL to let Vite proxy handle routing
+  // In development, use backend URL directly
   // In production, use VITE_API_URL
-  baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || ''),
+  baseURL: import.meta.env.DEV ? 'http://localhost:5000' : (import.meta.env.VITE_API_URL || ''),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -23,13 +23,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Debug: Log outgoing requests with auth status
-    console.log('🔐 API Request:', {
-      method: config.method?.toUpperCase(),
-      url: config.url,
-      hasAuth: !!token,
-      token: token ? `${token.substring(0, 20)}...` : 'none'
-    });
+    // Reduced logging for production
+    if (import.meta.env.DEV) {
+      console.log('🔐 API:', config.method?.toUpperCase(), config.url);
+    }
     
     return config;
   },

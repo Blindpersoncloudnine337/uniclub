@@ -1,3 +1,20 @@
+// ========================================
+// ⚠️  WARNING: THIS IS A BACKGROUND DAEMON
+// ========================================
+// This script runs FOREVER as a cron job!
+// It's designed for production servers.
+//
+// For ONE-TIME manual curation during development, use:
+//   npm run curate:win       (Windows)
+//   npm run curate:news      (Linux/Mac)
+//   npm run curation         (from backend dir)
+//
+// This daemon will:
+// - Start a cron scheduler
+// - Run news curation at midnight daily
+// - NEVER EXIT until you press Ctrl+C
+// ========================================
+
 // Load environment variables FIRST
 require('dotenv').config();
 
@@ -6,6 +23,7 @@ const NewsCurationService = require('../services/NewsCurationService');
 
 console.log('🌙 Midnight News Curation Job Starting...');
 console.log('⏰ Timezone: America/Chicago (Dallas CST/CDT)');
+console.log('⚠️  This is a DAEMON - it will run forever until stopped');
 
 const newsCurationService = new NewsCurationService();
 

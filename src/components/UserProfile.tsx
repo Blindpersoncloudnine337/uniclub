@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, User, Bell, HelpCircle, LogOut, Bookmark, Moon, Sun, ArrowLeft } from 'lucide-react';
+import { Settings, User, Bell, HelpCircle, LogOut, Bookmark, Moon, Sun, ArrowLeft, X } from 'lucide-react';
 import { Linkedin } from 'lucide-react';
 import UserHeader from './UserHeader';
 import SettingsListItem from './SettingsListItem';
 import BottomNavigation from './BottomNavigation';
 import { useUser } from '../context/UserContext';
-import SettingsPage from '../pages/SettingsPage';
 import { useTheme } from '../context/ThemeContext';
 import ProfilePictureUpload from './ProfilePictureUpload';
+import { isPortfolioDemo } from '../utils/portfolioDemo';
 import AvatarManagementModal from './AvatarManagementModal';
 
 interface UserProfileProps {
@@ -20,10 +20,16 @@ const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { user, logout } = useUser();
   const { isDarkMode, toggleDarkMode } = useTheme();
-  const [showSettings, setShowSettings] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showPortfolioMessage, setShowPortfolioMessage] = useState(false);
 
   const handleLogout = () => {
+    // Check if in portfolio demo mode
+    if (isPortfolioDemo()) {
+      setShowPortfolioMessage(true);
+      return;
+    }
+    
     logout();
     onClose();
     navigate('/auth');
@@ -33,25 +39,37 @@ const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
     {
       icon: Settings,
       label: 'Settings',
-      action: () => setShowSettings(true),
+      action: () => {
+        onClose(); // Close the profile modal first
+        navigate('/settings');
+      },
       color: 'text-gray-600 dark:text-gray-400'
     },
     {
       icon: Bell,
       label: 'Notifications',
-      action: () => navigate('/notifications'),
+      action: () => {
+        onClose(); // Close the profile modal first
+        navigate('/notifications');
+      },
       color: 'text-blue-600'
     },
     {
       icon: Bookmark,
       label: 'Saved Posts',
-      action: () => navigate('/saved'),
+      action: () => {
+        onClose(); // Close the profile modal first
+        navigate('/saved-posts', { state: { referrer: '/' } });
+      },
       color: 'text-purple-600'
     },
     {
       icon: HelpCircle,
       label: 'Help & Support',
-      action: () => navigate('/help'),
+      action: () => {
+        onClose(); // Close the profile modal first
+        navigate('/help');
+      },
       color: 'text-orange-600'
     },
     {
@@ -79,7 +97,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center px-6 pt-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center px-4 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
         <button 
           onClick={onClose}
           className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center shadow mr-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -89,54 +107,68 @@ const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
         <h1 className="text-lg font-bold text-gray-900 dark:text-white">Profile</h1>
       </div>
 
-      {/* User Info Section */}
-      <div className="flex items-center gap-4 pt-6 pb-2 px-6">
-        <div className="flex-shrink-0 cursor-pointer relative" onClick={() => setShowAvatarModal(true)}>
-          <ProfilePictureUpload 
-            size="xl" 
-            showUploadButton={false}
-            allowDelete={false}
-            className="hover:opacity-80 transition-opacity"
-          />
-          {/* Edit indicator */}
-          <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors">
-            <Settings className="w-4 h-4 text-white" />
-          </div>
-        </div>
-        
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">
-            {user?.name || 'User'}
-          </h3>
-          {user?.major && user?.year && (
-            <p className="text-gray-500 dark:text-gray-400 text-xs leading-tight">
-              {user.major} • {user.year}
-            </p>
-          )}
-          {user?.email && (
-            <p className="text-gray-400 dark:text-gray-500 text-xs leading-tight">{user.email}</p>
-          )}
-          {user?.memberId && (
-            <p className="text-emerald-600 dark:text-emerald-500 text-xs font-semibold mt-1">
-              ID: {user.memberId}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Content Container with Responsive Layout */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 py-6 pb-24">
+          <div className="max-w-4xl mx-auto space-y-6">
+            
+            {/* User Info Section */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 cursor-pointer relative" onClick={() => setShowAvatarModal(true)}>
+                  <ProfilePictureUpload 
+                    size="xl" 
+                    showUploadButton={false}
+                    allowDelete={false}
+                    className="hover:opacity-80 transition-opacity"
+                  />
+                  {/* Edit indicator */}
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-colors">
+                    <Settings className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                    {user?.name || 'User'}
+                  </h3>
+                  {user?.major && user?.year && (
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                      {user.major} • {user.year}
+                    </p>
+                  )}
+                  {user?.email && (
+                    <p className="text-gray-500 dark:text-gray-500 text-sm">{user.email}</p>
+                  )}
+                  {user?.memberId && (
+                    <p className="text-emerald-600 dark:text-emerald-500 text-sm font-semibold mt-2">
+                      ID: {user.memberId}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
 
-      {/* Profile Options List */}
-      <div className="flex-1 overflow-y-auto px-4 pb-20">
-        <div className="space-y-2">
-          {profileOptions.map((option, index) => (
-            <SettingsListItem
-              key={index}
-              icon={<option.icon className={option.color} />}
-              label={option.label}
-              type="navigation"
-              onClick={option.action}
-              colorClass={option.color}
-            />
-          ))}
+            {/* Profile Options List */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="p-4">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Options</h4>
+                <div className="space-y-2">
+                  {profileOptions.map((option, index) => (
+                    <SettingsListItem
+                      key={index}
+                      icon={<option.icon className={option.color} />}
+                      label={option.label}
+                      type="navigation"
+                      onClick={option.action}
+                      colorClass={option.color}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
 
@@ -145,20 +177,50 @@ const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
         <BottomNavigation />
       </div>
 
-      {/* SettingsPage Overlay */}
-      {showSettings && (
-        <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center">
-          <div className="w-full h-full max-w-md mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden flex flex-col">
-            <SettingsPage onBack={() => setShowSettings(false)} />
-          </div>
-        </div>
-      )}
-
       {/* Avatar Management Modal */}
       <AvatarManagementModal 
         isOpen={showAvatarModal}
         onClose={() => setShowAvatarModal(false)}
       />
+
+      {/* Portfolio Demo Message Modal */}
+      {showPortfolioMessage && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+            {/* Close button */}
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setShowPortfolioMessage(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogOut className="w-8 h-8 text-white" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                Sign Out Disabled
+              </h3>
+              
+              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                This function is disabled for portfolio demonstration purposes. You're viewing this app in demo mode to explore all features without authentication.
+              </p>
+              
+              <button
+                onClick={() => setShowPortfolioMessage(false)}
+                className="w-full bg-gradient-to-r from-orange-400 to-orange-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-orange-500 hover:to-orange-700 transition-all shadow-lg"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

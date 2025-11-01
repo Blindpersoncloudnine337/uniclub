@@ -22,6 +22,8 @@
 - 📅 **Event Management** - Create, RSVP, and manage university club events
 - 📚 **Resource Sharing** - Upload and share educational materials
 - 📊 **Engagement Analytics** - Universal like/save/share system across all content
+- 🔔 **Notification System** - Real-time notifications for comments, likes, and mentions
+- 🔄 **Club Switcher** - Seamlessly switch between multiple club memberships
 - 🌐 **Real-time Updates** - Live content updates and notifications
 
 ## 🛠️ Technology Stack
@@ -90,6 +92,13 @@ ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
 
 4. **Start the application**
+
+**For Windows (Recommended):**
+```powershell
+npm run start:win
+```
+
+**For Linux/Mac:**
 ```bash
 npm start
 ```
@@ -98,21 +107,35 @@ The application will automatically start both servers:
 - **Frontend:** http://localhost:8081
 - **Backend API:** http://localhost:5000
 
+> **💻 Windows Users:** See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for detailed Windows-specific instructions and troubleshooting.
+
 ## 📋 Available Scripts
 
 ### Root Package.json
 | Command | Description |
 |---------|-------------|
-| `npm start` | Starts both servers concurrently |
-| `npm run dev` | Starts both servers concurrently |
+| `npm start` | Starts both servers concurrently (Linux/Mac) |
+| `npm run dev` | Starts both servers concurrently (Linux/Mac) |
 | `npm run backend` | Starts only backend server |
 | `npm run frontend` | Starts only frontend server |
 | `npm run build` | Builds frontend for production |
 | `npm run build:dev` | Builds frontend in development mode |
 | `npm run lint` | Runs ESLint code quality check |
 | `npm run preview` | Previews production build |
-| `npm run daily-curator` | Runs news curation manually |
+| `npm run curate:win` | 🪟 **Run news curation (Windows)** - One-time run |
+| `npm run curate:news` | Run news curation (Linux/Mac) - One-time run |
+| `npm run daily-curator` | ⚠️ Background daemon (runs forever) |
 | `npm run install-all` | Installs dependencies for both frontend and backend |
+
+### Windows-Specific Scripts
+| Command | Description |
+|---------|-------------|
+| `npm run start:win` | 🪟 **Start both servers (Windows)** - Recommended! |
+| `npm run stop:win` | 🛑 Stop all development servers |
+| `npm run check:ports` | 🔍 Check server status and health |
+| `npm run kill:all` | ⚠️ Emergency: Kill all Node.js processes |
+
+> **💡 Windows Users:** Use `npm run start:win` for the best development experience with automatic port cleanup and status checking.
 
 ### Backend Package.json
 | Command | Description |
@@ -177,6 +200,14 @@ The application will automatically start both servers:
 | `POST` | `/api/engagement/share/:contentType/:contentId` | Share content | Yes |
 | `POST` | `/api/engagement/view/:contentType/:contentId` | Record view | Yes |
 
+### Notifications
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/notifications` | Get user notifications | Yes |
+| `GET` | `/api/notifications/unread-count` | Get unread count | Yes |
+| `PUT` | `/api/notifications/:id/read` | Mark as read | Yes |
+| `PUT` | `/api/notifications/read-all` | Mark all as read | Yes |
+
 ### Resources
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
@@ -202,15 +233,33 @@ The news curation system runs **automatically every day at midnight (Dallas time
 4. **Quality Control** - Positive/negative keyword filtering
 5. **Fallback System** - Previous high-engagement articles if insufficient new content
 
-### Manual Triggers
-```bash
-# Run curation manually
-npm run daily-curator
+### Manual Triggers (Development)
 
-# Backend curation scripts
-npm run curation
-npm run curation:verbose
+**Windows:**
+```powershell
+npm run curate:win           # Run curation once
+npm run curate:win:verbose   # Run with detailed logs
 ```
+
+**Linux/Mac:**
+```bash
+npm run curate:news          # Run curation once
+npm run curate:news:verbose  # Run with detailed logs
+```
+
+**Backend Scripts:**
+```bash
+cd uniclub-backend
+npm run curation             # One-time run
+npm run curation:verbose     # Verbose output
+```
+
+### Production Daemon
+```bash
+npm run curate:daemon  # Background job - runs forever at midnight daily
+```
+
+> **📚 Detailed Guide:** See [NEWS_CURATION_GUIDE.md](NEWS_CURATION_GUIDE.md) for complete documentation.
 
 ### Curation Features
 - **AI-Powered Selection** - Intelligent article filtering
@@ -278,9 +327,12 @@ uniclub/
 │   ├── capacitor.config.ts   # Mobile app config
 │   └── tsconfig.json         # TypeScript config
 └── 📚 Documentation
-    ├── README.md             # This file
-    ├── API_DOCUMENTATION.md  # Detailed API docs
-    └── SOCIAL_MEDIA_IMPLEMENTATION.md # Social features guide
+    ├── README.md                  # This file
+    ├── CUSTOMIZATION_GUIDE.md     # Branding & customization guide
+    ├── API_DOCUMENTATION.md       # Detailed API docs
+    ├── WINDOWS_SETUP.md           # Windows setup guide
+    ├── NEWS_CURATION_GUIDE.md     # News curation documentation
+    └── ENV_SAFETY_GUIDE.md        # Environment file safety
 ```
 
 ## 🌍 Environment Setup
@@ -326,10 +378,11 @@ ANTHROPIC_API_KEY=your-anthropic-api-key-from-console.anthropic.com
 ### Advanced Features
 - **🤖 AI Curation** - Daily automated content selection and summarization
 - **📊 Analytics** - Comprehensive engagement tracking and user insights
-- **🔍 Search** - Advanced content search and filtering
+- **🔍 Search** - Advanced content search and filtering across all content
 - **📱 PWA** - Progressive web app with offline capabilities
-- **🔔 Notifications** - Real-time updates and user notifications
-- **🔄 Real-time Updates** - Live content synchronization
+- **🔔 Notifications** - Real-time notifications for comments, likes, and mentions
+- **🔄 Club Switcher** - Easy switching between multiple club memberships
+- **🎨 Portfolio Demo** - Auto-login mode for portfolio demonstrations
 
 ### User Experience
 - **🎨 Modern UI** - Beautiful, responsive design with Tailwind CSS
@@ -394,8 +447,27 @@ npx cap build ios
    - Ensure MongoDB service is running
 
 2. **Port Already in Use**
-   - Change PORT in .env file
-   - Kill existing processes on ports 8081/5000
+   
+   **Windows:**
+   ```powershell
+   # Check what's running
+   npm run check:ports
+   
+   # Stop servers properly
+   npm run stop:win
+   
+   # Or emergency kill all
+   npm run kill:all
+   ```
+   
+   **Linux/Mac:**
+   ```bash
+   # Kill process on port 5000
+   lsof -ti:5000 | xargs kill -9
+   
+   # Kill process on port 8081
+   lsof -ti:8081 | xargs kill -9
+   ```
 
 3. **API Keys Invalid**
    - Verify NEWS_API_KEY and ANTHROPIC_API_KEY
@@ -406,7 +478,33 @@ npx cap build ios
    - Update Node.js to LTS version
    - Check TypeScript compilation errors
 
+5. **Servers Start but Not Accessible (Windows)**
+   ```powershell
+   # Full reset
+   npm run kill:all
+   Start-Sleep -Seconds 3
+   npm run start:win
+   ```
+
 ### Debug Commands
+
+**Windows:**
+```powershell
+# Check backend health
+Invoke-WebRequest http://localhost:5000/api/health
+
+# Check server status
+npm run check:ports
+
+# View logs (check separate terminal windows)
+# - BACKEND SERVER window
+# - FRONTEND SERVER window
+
+# Test news curation
+npm run daily-curator
+```
+
+**Linux/Mac:**
 ```bash
 # Check backend health
 curl http://localhost:5000/api/health
@@ -416,10 +514,9 @@ npm run backend
 
 # Test news curation
 npm run daily-curator
-
-# Check MongoDB connection
-npm run test-mongodb
 ```
+
+> **📚 Detailed Windows Help:** See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for comprehensive Windows troubleshooting.
 
 ## 🤝 Contributing
 
@@ -447,9 +544,17 @@ This project is licensed under the **ISC License** - see the [LICENSE](LICENSE) 
 - **News API** - For reliable tech news content
 - **Open Source Community** - For the amazing tools and libraries
 
+## 📚 Additional Documentation
+
+- **🎨 Customization Guide:** [CUSTOMIZATION_GUIDE.md](CUSTOMIZATION_GUIDE.md) - Logo, branding, and theming
+- **🪟 Windows Setup:** [WINDOWS_SETUP.md](WINDOWS_SETUP.md) - Windows development guide
+- **📰 News Curation:** [NEWS_CURATION_GUIDE.md](NEWS_CURATION_GUIDE.md) - AI curation system
+- **🔐 Environment Safety:** [ENV_SAFETY_GUIDE.md](ENV_SAFETY_GUIDE.md) - Credential management
+- **📡 API Documentation:** [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API reference
+
 ## 📞 Support
 
-- **Documentation:** [API Documentation](API_DOCUMENTATION.md)
+- **Documentation:** See guides above
 - **Issues:** [GitHub Issues](https://github.com/your-repo/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/your-repo/discussions)
 

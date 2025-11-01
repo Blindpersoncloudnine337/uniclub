@@ -29,7 +29,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    // Removed lovable-tagger
   ].filter(Boolean),
   resolve: {
     alias: {

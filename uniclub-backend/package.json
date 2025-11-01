@@ -6,11 +6,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "dev:admin": "nodemon server-with-payload.js",
+    "start:admin": "node server-with-payload.js",
     "import": "node importCSV.js",
     "daily-curator": "node jobs/midnightCuration.js",
     "curation": "node manual-curation.js",
     "curation:verbose": "node manual-curation.js --verbose",
-    "recount-comments": "node scripts/recountComments.js"
+    "recount-comments": "node scripts/recountComments.js",
+    "reset-resource-counts": "node scripts/resetResourceCounts.js"
   },
   "keywords": [],
   "author": "",
@@ -19,19 +22,25 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
     "@mozilla/readability": "^0.6.0",
+    "@payloadcms/bundler-webpack": "^1.0.7",
+    "@payloadcms/db-mongodb": "^1.7.2",
+    "@payloadcms/richtext-slate": "^1.5.2",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
+    "graphql": "^16.11.0",
+    "graphql-type-json": "^0.3.2",
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
     "multer": "^2.0.1",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
-    "node-readability": "^3.0.0"
+    "node-readability": "^3.0.0",
+    "payload": "^2.30.3"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.8.0",

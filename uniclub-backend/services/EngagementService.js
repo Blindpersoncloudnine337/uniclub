@@ -172,10 +172,29 @@ class EngagementService {
       })
       .sort({ likedAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('contentId');
+      .limit(limit);
       
-      return engagements.map(eng => eng.contentId);
+      // Get the content IDs
+      const contentIds = engagements.map(eng => eng.contentId);
+      
+      // Get the appropriate model and fetch the actual content
+      const Model = this.getContentModel(contentType);
+      let query = Model.find({ _id: { $in: contentIds } });
+      
+      // Populate author for SocialPost
+      if (contentType === 'SocialPost') {
+        query = query.populate('author', 'name profile');
+      }
+      
+      const content = await query;
+      
+      // Sort content by the order of liked dates
+      const contentMap = {};
+      content.forEach(item => {
+        contentMap[item._id.toString()] = item;
+      });
+      
+      return engagements.map(eng => contentMap[eng.contentId.toString()]).filter(Boolean);
     } catch (error) {
       console.error('Error getting user liked content:', error);
       return [];
@@ -200,10 +219,34 @@ class EngagementService {
       })
       .sort({ savedAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('contentId');
+      .limit(limit);
       
-      return engagements.map(eng => eng.contentId);
+      // Get the content IDs
+      const contentIds = engagements.map(eng => eng.contentId);
+      
+      // Get the appropriate model and fetch the actual content
+      const Model = this.getContentModel(contentType);
+      let query = Model.find({ _id: { $in: contentIds } });
+      
+      // Populate author for SocialPost
+      if (contentType === 'SocialPost') {
+        query = query.populate('author', 'name profile');
+      }
+      
+      // Populate uploadedBy for Resource
+      if (contentType === 'Resource') {
+        query = query.populate('uploadedBy', 'name profile');
+      }
+      
+      const content = await query;
+      
+      // Sort content by the order of saved dates
+      const contentMap = {};
+      content.forEach(item => {
+        contentMap[item._id.toString()] = item;
+      });
+      
+      return engagements.map(eng => contentMap[eng.contentId.toString()]).filter(Boolean);
     } catch (error) {
       console.error('Error getting user saved content:', error);
       return [];

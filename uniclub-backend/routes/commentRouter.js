@@ -501,12 +501,30 @@ router.post('/:contentType/:contentId', authenticateToken, async (req, res) => {
     // Create notification for content author if it's not the same user
     const authorField = contentItem.author || contentItem.organizer || contentItem.uploadedBy;
     if (authorField && authorField.toString() !== userId) {
-      await Notification.create({
+      const notificationData = {
         recipient: authorField,
         type: 'comment_reply',
         comment: comment._id,
         actor: userId
-      });
+      };
+      
+      // Add content-specific fields based on contentType
+      switch (contentType) {
+        case 'news':
+          notificationData.article = contentId;
+          break;
+        case 'event':
+          notificationData.event = contentId;
+          break;
+        case 'resource':
+          notificationData.resource = contentId;
+          break;
+        case 'social':
+          notificationData.post = contentId;
+          break;
+      }
+      
+      await Notification.create(notificationData);
     }
     
     // NO REPLY NOTIFICATIONS - replies removed
@@ -525,6 +543,67 @@ router.post('/:contentType/:contentId', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error creating comment:', error);
     res.status(500).json({ error: 'Failed to create comment' });
+  }
+});
+
+// Delete a comment - only the author can delete their own comment
+router.delete('/:commentId', authenticateToken, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user.userId;
+
+    console.log(`🗑️ DELETE COMMENT REQUEST: commentId=${commentId}, userId=${userId}`);
+
+    // Find the comment first to verify ownership
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      console.log('❌ Comment not found');
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    // Check if the user is the author of the comment
+    if (comment.userId.toString() !== userId) {
+      console.log('❌ Unauthorized: User is not the comment author');
+      return res.status(403).json({ error: 'You can only delete your own comments' });
+    }
+
+    console.log('✅ User authorized to delete comment');
+
+    // Get content type and ID for updating comment count
+    const contentType = comment.contentType;
+    const contentId = comment.contentId;
+
+    // Delete the comment
+    await Comment.findByIdAndDelete(commentId);
+    console.log('✅ Comment deleted from database');
+
+    // Update the comment count on the parent content
+    const ModelRef = getModelReference(contentType);
+    if (ModelRef) {
+      await ModelRef.findByIdAndUpdate(contentId, { 
+        $inc: { comments: -1 } 
+      });
+      console.log(`✅ Decremented comment count for ${contentType}:${contentId}`);
+    }
+
+    // Update user's comment count
+    await User.findByIdAndUpdate(userId, {
+      $inc: { 'socialStats.commentsPosted': -1 }
+    });
+    console.log('✅ Decremented user comment count');
+
+    // TODO: Optionally delete related notifications
+    // await Notification.deleteMany({ comment: commentId });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Comment deleted successfully',
+      deletedCommentId: commentId
+    });
+
+  } catch (error) {
+    console.error('❌ Error deleting comment:', error);
+    res.status(500).json({ error: 'Failed to delete comment' });
   }
 });
 

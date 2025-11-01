@@ -33,8 +33,37 @@ const resourceSchema = new mongoose.Schema({
     type: String
   },
   
+  linkUrl: {
+    type: String
+  },
+  
   thumbnailUrl: {
     type: String
+  },
+  
+  // New flexible file field - supports both uploads and links
+  file: {
+    type: {
+      type: String,
+      enum: ['upload', 'link'],
+      required: false
+    },
+    url: {
+      type: String,
+      required: false
+    },
+    originalName: {
+      type: String,
+      required: false
+    },
+    mimeType: {
+      type: String,
+      required: false
+    },
+    size: {
+      type: Number,
+      required: false
+    }
   },
   
   // Author/uploader

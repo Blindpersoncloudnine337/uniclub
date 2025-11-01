@@ -5,8 +5,6 @@ const SocialComment = require('../models/SocialComment');
 const Comment = require('../models/Comment');
 const SocialInteraction = require('../models/SocialInteraction');
 const Follow = require('../models/Follow');
-const Group = require('../models/Group');
-const GroupMembership = require('../models/GroupMembership');
 const User = require('../models/User');
 const EngagementService = require('../services/EngagementService');
 const SocialFeedService = require('../services/SocialFeedService');
@@ -26,7 +24,6 @@ const {
 const { 
   checkPostPrivacy, 
   checkUserProfilePrivacy, 
-  checkGroupPrivacy,
   requireClubMembership,
   blockUnauthorizedActions
 } = require('../middleware/privacy');
@@ -36,8 +33,14 @@ const fs = require('fs');
 
 // Set up media uploads directory
 const uploadsDir = path.join(__dirname, '../public/uploads/social');
+console.log('📁 Uploads directory path:', uploadsDir);
+console.log('📁 Directory exists:', fs.existsSync(uploadsDir));
+console.log('📁 Directory is writable:', fs.accessSync ? fs.accessSync(uploadsDir, fs.constants.W_OK) : 'Unknown');
+
 if (!fs.existsSync(uploadsDir)) {
+  console.log('📁 Creating uploads directory...');
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Directory created successfully');
 }
 
 // Enhanced multer configuration for images and videos
@@ -109,25 +112,6 @@ router.get('/feed', authenticateToken, requireClubMembership, async (req, res) =
   }
 });
 
-// GET /api/social/trending - Get trending posts
-router.get('/trending', async (req, res) => {
-  try {
-    const { timeframe = 24, limit = 20 } = req.query;
-    
-    const trendingPosts = await SocialFeedService.getTrendingPosts({
-      timeframe: parseInt(timeframe),
-      limit: parseInt(limit)
-    });
-
-    res.json({
-      success: true,
-      posts: trendingPosts
-    });
-  } catch (error) {
-    console.error('Error fetching trending posts:', error);
-    res.status(500).json({ error: 'Failed to fetch trending posts', details: error.message });
-  }
-});
 
 // GET /api/social/suggested - Get suggested posts for discovery
 router.get('/suggested', authenticateToken, requireClubMembership, async (req, res) => {
@@ -156,11 +140,9 @@ router.post('/posts', authenticateToken, requireClubMembership, createPostLimit,
   try {
     const { 
       content, 
-      hashtags, 
       mentions, 
       visibility = 'club-members',
       postType = 'text',
-      groupId,
       pollData,
       projectData
     } = req.body;
@@ -171,14 +153,25 @@ router.post('/posts', authenticateToken, requireClubMembership, createPostLimit,
     
     // Process uploaded media
     const media = [];
+    console.log('🔍 Processing uploaded files:', {
+      hasFiles: !!req.files,
+      fileCount: req.files?.length || 0,
+      files: req.files?.map(f => ({ name: f.originalname, size: f.size, mimetype: f.mimetype, filename: f.filename }))
+    });
+    
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        // Get base URL from environment or default to localhost:5000
+        const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        
         const mediaItem = {
           type: file.mimetype.startsWith('video/') ? 'video' : 'image',
-          url: `/uploads/social/${file.filename}`,
+          url: `${baseUrl}/uploads/social/${file.filename}`,
           filename: file.filename,
           size: file.size
         };
+        
+        console.log('📁 Created media item:', mediaItem);
         
         // For videos, you might want to generate thumbnails here
         // This is a placeholder - in production, use ffmpeg or similar
@@ -191,23 +184,12 @@ router.post('/posts', authenticateToken, requireClubMembership, createPostLimit,
       }
     }
     
-    // Parse mentions and hashtags
-    const parsedHashtags = hashtags ? JSON.parse(hashtags) : [];
+    console.log('📦 Final media array:', media);
+    
+    // Parse mentions and hashtags (hashtags are now part of content, not separate)
+    const parsedHashtags = []; // Hashtags are extracted from content automatically
     const parsedMentions = mentions ? JSON.parse(mentions) : [];
     
-    // Validate group membership if posting to a group
-    if (groupId) {
-      const membership = await GroupMembership.findOne({
-        groupId,
-        userId: req.user.userId,
-        status: 'active',
-        'permissions.canPost': true
-      });
-      
-      if (!membership) {
-        return res.status(403).json({ error: 'Not authorized to post in this group' });
-      }
-    }
     
     // Create post object
     const postData = {
@@ -221,13 +203,21 @@ router.post('/posts', authenticateToken, requireClubMembership, createPostLimit,
     };
     
     // Add optional fields
-    if (groupId) postData.groupId = groupId;
     if (pollData) postData.poll = JSON.parse(pollData);
     if (projectData) postData.projectData = JSON.parse(projectData);
     
     const post = new SocialPost(postData);
     
+    console.log('💾 Saving post with data:', {
+      content: postData.content,
+      mediaCount: postData.media.length,
+      media: postData.media,
+      postType: postData.postType
+    });
+    
     await post.save();
+    console.log('✅ Post saved successfully with ID:', post._id);
+    
     await post.populate('author', 'name uniqueId profile.avatar');
     await post.populate('mentions', 'name uniqueId profile.avatar');
     
@@ -238,7 +228,6 @@ router.post('/posts', authenticateToken, requireClubMembership, createPostLimit,
 
     // Invalidate feed caches
     CacheService.invalidatePattern(`feed:${req.user.userId}`);
-    CacheService.invalidatePattern('trending:');
     
     res.status(201).json({
       success: true,
@@ -257,7 +246,6 @@ router.get('/posts', async (req, res) => {
       page = 1, 
       limit = 10, 
       type, 
-      groupId, 
       userId, 
       hashtag 
     } = req.query;
@@ -266,7 +254,6 @@ router.get('/posts', async (req, res) => {
     
     // Apply filters
     if (type) query.postType = type;
-    if (groupId) query.groupId = groupId;
     if (userId) query.author = userId;
     if (hashtag) query.hashtags = hashtag;
     
@@ -274,7 +261,6 @@ router.get('/posts', async (req, res) => {
     
     const posts = await SocialPost.find(query)
       .populate('author', 'name uniqueId profile.avatar')
-      .populate('groupId', 'name slug')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
@@ -338,6 +324,131 @@ router.get('/posts', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch posts', details: error.message });
+  }
+});
+
+// PUT /api/social/posts/:id - Update a social post
+router.put('/posts/:id', authenticateToken, upload.array('media', 5), validateMediaFiles, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, postType, imagesToDelete } = req.body;
+    
+    console.log('📝 Updating post:', { id, content, postType, imagesToDelete });
+    
+    // Find the post and check ownership
+    const post = await SocialPost.findById(id);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    // Check if the current user is the author of the post
+    if (post.author.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to edit this post' });
+    }
+    
+    // Start with existing media
+    let media = [...(post.media || [])];
+    
+    // Remove images marked for deletion
+    if (imagesToDelete && imagesToDelete.length > 0) {
+      console.log('🗑️ Removing images:', imagesToDelete);
+      
+      // Parse imagesToDelete if it's a JSON string
+      let imagesToRemove = imagesToDelete;
+      if (typeof imagesToDelete === 'string') {
+        try {
+          imagesToRemove = JSON.parse(imagesToDelete);
+        } catch (e) {
+          console.error('Error parsing imagesToDelete:', e);
+          imagesToRemove = [];
+        }
+      }
+      
+      // Filter out images that are marked for deletion
+      media = media.filter(mediaItem => !imagesToRemove.includes(mediaItem.url));
+      console.log('✅ Images after removal:', media.length);
+    }
+    
+    // Process new media files if any
+    if (req.files && req.files.length > 0) {
+      console.log('📁 Adding new media files:', req.files.length);
+      
+      // Get base URL from environment or default to localhost:5000
+      const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+      
+      for (const file of req.files) {
+        const mediaItem = {
+          type: file.mimetype.startsWith('video/') ? 'video' : 'image',
+          url: `${baseUrl}/uploads/social/${file.filename}`,
+          filename: file.filename,
+          size: file.size
+        };
+        media.push(mediaItem);
+      }
+    }
+    
+    console.log('📊 Final media array:', media.length, 'items');
+    
+    // Update the post
+    const updatedPost = await SocialPost.findByIdAndUpdate(
+      id,
+      {
+        content,
+        postType: postType || 'text',
+        media,
+        updatedAt: new Date(),
+        isEdited: true,
+        editedAt: new Date()
+      },
+      { new: true }
+    ).populate('author', 'name uniqueId profile.avatar');
+    
+    // Invalidate feed caches
+    CacheService.invalidatePattern(`feed:${req.user.userId}`);
+    
+    res.json({
+      success: true,
+      message: 'Post updated successfully',
+      post: updatedPost
+    });
+  } catch (error) {
+    console.error('Error updating post:', error);
+    res.status(500).json({ error: 'Failed to update post', details: error.message });
+  }
+});
+
+// DELETE /api/social/posts/:id - Delete a social post
+router.delete('/posts/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the post and check ownership
+    const post = await SocialPost.findById(id);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    // Check if the current user is the author of the post
+    if (post.author.toString() !== req.user.userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this post' });
+    }
+    
+    // Soft delete by setting status to 'deleted'
+    await SocialPost.findByIdAndUpdate(id, { 
+      status: 'deleted',
+      deletedAt: new Date()
+    });
+    
+    // Invalidate feed caches
+    CacheService.invalidatePattern(`feed:${req.user.userId}`);
+    
+    res.json({
+      success: true,
+      message: 'Post deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    res.status(500).json({ error: 'Failed to delete post', details: error.message });
   }
 });
 

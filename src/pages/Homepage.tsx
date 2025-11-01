@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 import FeaturedContent from '../components/FeaturedContent';
 import NewsCard from '../components/cards/NewsCard';
 import EventCard from '../components/cards/EventCard';
@@ -9,8 +10,38 @@ import ResourceCard from '../components/cards/ResourceCard';
 
 const Homepage: React.FC = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
 
-  // Fetch top 3 trending news dynamically (based on likes)
+  // Ensure scroll is always working on homepage mount
+  useEffect(() => {
+    console.log('🏠 Homepage mounted - ensuring scroll is enabled');
+    console.log('🔍 Checking for scroll-blocking elements...');
+    
+    // Force restore any stuck scroll locks from modals/viewers
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    
+    // Also check html element
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.position = '';
+    
+    // Force focus to make scroll events work
+    const timeout = setTimeout(() => {
+      window.focus();
+      document.body.focus();
+      // ScrollToTop component handles navigation scroll
+    }, 100);
+    
+    console.log('✅ Homepage scroll fully restored and focused');
+    
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Fetch top 6 trending news dynamically (based on likes)
   const { data: trendingNews = [], isLoading: newsLoading, error: newsError } = useQuery({
     queryKey: ['trendingNews'],
     queryFn: async () => {
@@ -32,7 +63,7 @@ const Homepage: React.FC = () => {
           if (bLikes !== aLikes) return bLikes - aLikes; // Sort by likes descending
           return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(); // Then by recency
         })
-        .slice(0, 3);
+        .slice(0, 6);
     },
     staleTime: 5 * 60 * 1000,
     retry: 2
@@ -85,7 +116,10 @@ const Homepage: React.FC = () => {
           userAvatar: post.author?.profile?.avatar?.data || null,
           timestamp: new Date(post.createdAt).toLocaleString(),
           content: post.content,
-          imageUrl: post.media?.[0]?.url || null
+          imageUrl: post.media?.[0]?.url || null,
+        media: post.media || [],
+          authorId: post.author?._id || '',
+          currentUserId: currentUser?.id
         }));
       
       console.log('🏠 Homepage final social posts:', finalPosts.map(p => ({
@@ -129,8 +163,10 @@ const Homepage: React.FC = () => {
           title: event.title,
           date: new Date(event.startDate).toLocaleDateString(),
           time: new Date(event.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          location: event.location?.address || event.location || 'TBD',
+          location: event.location?.room || event.location?.address || 'TBD',
           description: event.description,
+          imageUrl: event.poster || event.posterUrl || event.imageUrl,
+          category: event.category || event.eventType || 'General',
           eventType: event.eventType || 'Workshop',
           rsvpCount: event.rsvpCount || 0,
           // Include engagement stats from API response
@@ -162,15 +198,15 @@ const Homepage: React.FC = () => {
         views: r.views || 0
       })));
       
-      // Sort by downloads (for documents/tools) or views (for videos/tutorials)
+      // Sort by downloads (for documents) or views (for videos/tutorials/tools)
       return resources
         .filter((resource: any) => resource && resource.status === 'approved') // Only approved resources
         .sort((a: any, b: any) => {
-          // For documents/tools, prioritize downloads; for videos/tutorials, prioritize views
-          const aScore = (a.type === 'Document' || a.type === 'Tool') 
+          // For documents, prioritize downloads; for videos/tutorials/tools, prioritize views
+          const aScore = a.type === 'Document' 
             ? (a.downloadCount || 0) 
             : (a.views || 0);
-          const bScore = (b.type === 'Document' || b.type === 'Tool') 
+          const bScore = b.type === 'Document' 
             ? (b.downloadCount || 0) 
             : (b.views || 0);
           return bScore - aScore; // Sort by engagement score descending
@@ -186,6 +222,8 @@ const Homepage: React.FC = () => {
           views: resource.views || 0,
           thumbnailUrl: resource.thumbnailUrl,
           fileSize: resource.fileSize,
+          linkUrl: resource.linkUrl,
+          fileUrl: resource.fileUrl,
           isApproved: resource.isApproved || true,
           author: resource.uploadedBy?.name || 'AI Club Team',
           tags: resource.tags || [],
@@ -204,12 +242,14 @@ const Homepage: React.FC = () => {
   const sortedResources = featuredResources;
 
   return (
-    <div className="px-0 py-6 space-y-6 bg-white dark:bg-gray-900 min-h-screen">
-      {/* Featured Content */}
-      <FeaturedContent />
+    <div className="bg-white dark:bg-gray-900 min-h-screen">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Featured Content */}
+          <FeaturedContent />
 
-      {/* News Section - Improved Hierarchy */}
-      <section className="px-4">
+          {/* News Section - Improved Hierarchy */}
+          <section>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center space-x-2">
             <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full"></div>
@@ -223,20 +263,21 @@ const Homepage: React.FC = () => {
           </button>
         </div>
         {/* Trending News - Dynamically fetched */}
-                 {newsLoading ? (
-           <div className="space-y-4">
-             {[...Array(3)].map((_, index) => (
-                                                               <div key={index} className="bg-white dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl p-4 animate-pulse shadow-sm">
-                  <div className="h-4 bg-gray-200 dark:bg-amber-800 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-amber-800 rounded w-full mb-1"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-amber-800 rounded w-3/5"></div>
-                </div>
-             ))}
-           </div>
+        {newsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="bg-white dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl p-4 animate-pulse shadow-sm">
+                <div className="h-48 bg-gray-200 dark:bg-amber-800 rounded-xl mb-4"></div>
+                <div className="h-4 bg-gray-200 dark:bg-amber-800 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 dark:bg-amber-800 rounded w-full mb-1"></div>
+                <div className="h-3 bg-gray-200 dark:bg-amber-800 rounded w-3/5"></div>
+              </div>
+            ))}
+          </div>
         ) : newsError ? (
           <div className="mb-4 text-red-500">Failed to load news.</div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trendingNews.map((news: any, idx: number) => (
               <NewsCard
                 key={news._id}
@@ -259,8 +300,8 @@ const Homepage: React.FC = () => {
         )}
       </section>
 
-      {/* Events Section */}
-      <section className="px-4 py-6 bg-gradient-to-br from-transparent to-emerald-50/20 dark:to-emerald-900/5 rounded-2xl mx-2">
+          {/* Events Section */}
+          <section className="py-6 bg-gradient-to-br from-transparent to-emerald-50/20 dark:to-emerald-900/5 rounded-2xl px-4">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center space-x-2">
             <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full"></div>
@@ -275,7 +316,7 @@ const Homepage: React.FC = () => {
         </div>
         
         {eventsLoading ? (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(3)].map((_, index) => (
               <div key={index} className="bg-white dark:bg-[#00281B] border border-emerald-300 dark:border-green-800 rounded-2xl p-4 animate-pulse shadow-sm">
                 <div className="h-4 bg-gray-200 dark:bg-green-800 rounded w-3/4 mb-2"></div>
@@ -297,9 +338,9 @@ const Homepage: React.FC = () => {
             <p className="text-xs text-gray-500 dark:text-gray-400">Check back later for exciting new events!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {upcomingEvents.map((event, index) => (
-              <EventCard key={index} {...event} isCompact />
+              <EventCard key={index} {...event} isCompact allowAdaptiveImage={true} />
             ))}
           </div>
         )}
@@ -344,9 +385,9 @@ const Homepage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {trendingPosts.map((post) => (
-              <SocialCard key={post.id} {...post} isCompact />
-            ))}
+                         {trendingPosts.map((post) => (
+               <SocialCard key={post.id} {...post} isCompact currentUserId={currentUser?.id} />
+             ))}
           </div>
         )}
       </section>
@@ -367,7 +408,14 @@ const Homepage: React.FC = () => {
         </div>
         
         {resourcesLoading ? (
-          <div className="overflow-x-auto scrollbar-hide">
+          <div 
+            className="overflow-x-auto scrollbar-hide"
+            style={{ 
+              overscrollBehaviorX: 'contain',
+              overscrollBehaviorY: 'auto',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
             <div className="flex space-x-4 pb-2 px-4" style={{ width: 'max-content' }}>
               {[...Array(5)].map((_, index) => (
                 <div key={index} className="w-60 h-64 flex-shrink-0 bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 animate-pulse flex flex-col">
@@ -414,7 +462,14 @@ const Homepage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto scrollbar-hide">
+          <div 
+            className="overflow-x-auto scrollbar-hide"
+            style={{ 
+              overscrollBehaviorX: 'contain',
+              overscrollBehaviorY: 'auto',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
             <div className="flex space-x-4 pb-2 px-4" style={{ width: 'max-content' }}>
               {sortedResources.map((resource, index) => (
                 <div key={resource.id || index} className="w-60 flex-shrink-0">
@@ -424,7 +479,9 @@ const Homepage: React.FC = () => {
             </div>
           </div>
         )}
-      </section>
+          </section>
+        </div>
+      </div>
     </div>
   );
 };

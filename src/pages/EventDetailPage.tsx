@@ -1,12 +1,17 @@
-import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink } from 'lucide-react';
 import InteractionButtons from '../components/InteractionButtons';
+import BackNavigation from '../components/BackNavigation';
 
 const EventDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
+  
+  // Get referrer from navigation state, default to /events
+  const referrer = location.state?.referrer || '/events';
 
   // Fetch event data from API
   const { data: eventData, isLoading, error } = useQuery({
@@ -33,11 +38,6 @@ const EventDetailPage: React.FC = () => {
     retry: 2
   });
 
-  const handleRSVP = () => {
-    console.log('RSVP clicked for event:', id);
-    // TODO: Implement RSVP functionality
-  };
-
   // Loading state
   if (isLoading) {
     return (
@@ -45,7 +45,7 @@ const EventDetailPage: React.FC = () => {
         <div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 px-4 py-3">
           <div className="flex items-center space-x-3">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(referrer)}
               className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -56,7 +56,7 @@ const EventDetailPage: React.FC = () => {
 
         <div className="px-4 py-6 space-y-6">
           <div className="space-y-4">
-            <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse"></div>
+            <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse"></div>
             <div className="space-y-3">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div>
@@ -79,7 +79,7 @@ const EventDetailPage: React.FC = () => {
         <div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 px-4 py-3">
           <div className="flex items-center space-x-3">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(referrer)}
               className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -112,7 +112,7 @@ const EventDetailPage: React.FC = () => {
     title: eventData.title,
     date: new Date(eventData.startDate).toLocaleDateString(),
     time: `${new Date(eventData.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(eventData.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-    location: eventData.location?.address || eventData.location?.room || 'TBD',
+    location: eventData.location?.room || eventData.location?.address || 'TBD',
     description: eventData.description,
     fullDescription: eventData.description,
     eventType: eventData.eventType,
@@ -124,6 +124,7 @@ const EventDetailPage: React.FC = () => {
     category: eventData.category?.[0] || 'AI/ML',
     skillLevel: eventData.skillLevel,
     prerequisites: eventData.prerequisites || [],
+    rsvpLink: eventData.rsvpLink,
     // Include engagement stats from API response
     likeCount: eventData.likeCount || 0,
     shareCount: eventData.shareCount || 0,
@@ -133,26 +134,21 @@ const EventDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-          </button>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Event Details</h1>
-        </div>
-      </div>
+      {/* Back Navigation Header */}
+      <BackNavigation
+        referrer={referrer}
+        contentType="event"
+        fallbackReferrer="/events"
+      />
 
-      <div className="px-4 py-6 space-y-6">
-        {/* Event Image */}
-        <div className="rounded-2xl overflow-hidden">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+        {/* Event Image - Responsive sizing */}
+        <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 inline-block">
           <img 
             src={event.imageUrl} 
             alt={event.title}
-            className="w-full h-48 object-cover"
+            className="w-full sm:w-full md:max-w-xs lg:max-w-sm h-auto object-cover"
           />
         </div>
 
@@ -223,7 +219,9 @@ const EventDetailPage: React.FC = () => {
           <InteractionButtons
             contentType="Event"
             contentId={id || 'event'}
-            onCommentClick={() => navigate(`/comments/event/${id}`)}
+            onCommentClick={() => navigate(`/comments/event/${id}`, { 
+              state: { referrer: location.pathname }
+            })}
             shareTitle={event.title}
             shareType="event"
             layout="horizontal"
@@ -278,11 +276,19 @@ const EventDetailPage: React.FC = () => {
         {/* RSVP Button */}
         <div className="sticky bottom-4">
           <button 
-            onClick={handleRSVP}
+            onClick={() => {
+              if (event.rsvpLink) {
+                window.open(event.rsvpLink, '_blank', 'noopener,noreferrer');
+              } else {
+                console.log('No RSVP link available for event');
+              }
+            }}
             className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-600 dark:hover:border-emerald-400 rounded-xl transition-all duration-200 font-medium text-sm"
           >
             RSVP for Event
+            {event.rsvpLink && <ExternalLink className="w-4 h-4" />}
           </button>
+        </div>
         </div>
       </div>
     </div>

@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import EventCard from '../components/cards/EventCard';
 import CalendarView from '../components/CalendarView';
+import PastEventCard from '../components/cards/PastEventCard';
 import { transformToEventCard, MongoEvent } from '../utils/eventTransform';
 
 const EventsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   // Fetch events from API instead of using hardcoded data
@@ -29,6 +32,19 @@ const EventsPage: React.FC = () => {
     retry: 2
   });
 
+  // Fetch past events
+  const { data: pastEventsData, isLoading: pastEventsLoading } = useQuery({
+    queryKey: ['past-events'],
+    queryFn: async () => {
+      const response = await fetch('/api/past-events');
+      if (!response.ok) throw new Error('Failed to fetch past events');
+      const data = await response.json();
+      return data.success ? data.data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 2
+  });
+
   // Raw events data for calendar view
   const rawEvents: MongoEvent[] = eventsData || [];
 
@@ -39,7 +55,9 @@ const EventsPage: React.FC = () => {
   const totalRSVPs = upcomingEvents.reduce((sum: number, event: any) => sum + (event.rsvpCount || 0), 0);
 
   return (
-    <div className="px-4 py-6 bg-white dark:bg-gray-900 min-h-screen">
+    <div className="bg-white dark:bg-gray-900 min-h-screen">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -117,9 +135,9 @@ const EventsPage: React.FC = () => {
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Check back later for new events!</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {upcomingEvents.map((event) => (
-            <EventCard key={event.id} {...event} />
+            <EventCard key={event.id} {...event} isEventsPage={true} allowAdaptiveImage={true} />
           ))}
         </div>
       ) : (
@@ -127,6 +145,54 @@ const EventsPage: React.FC = () => {
           <CalendarView events={rawEvents} />
         </div>
       )}
+
+      {/* Past Events Section */}
+      {viewMode === 'list' && (
+        <div className="mt-12">
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Past Events</h2>
+            </div>
+          </div>
+
+          {pastEventsLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 animate-pulse">
+                  <div className="w-full min-h-[200px] bg-gray-200 dark:bg-gray-700"></div>
+                  <div className="p-4">
+                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : pastEventsData && pastEventsData.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pastEventsData.map((event: any) => (
+                <PastEventCard
+                  key={event._id}
+                  id={event._id}
+                  title={event.title}
+                  subtitle={event.subtitle}
+                  poster={event.poster}
+                  onClick={() => navigate(`/past-events/${event._id}`)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+              <svg className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-gray-600 dark:text-gray-400">No past events yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Check back later for event highlights!</p>
+            </div>
+          )}
+        </div>
+      )}
+        </div>
+      </div>
     </div>
   );
 };

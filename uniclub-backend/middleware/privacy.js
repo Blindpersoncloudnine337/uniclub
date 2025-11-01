@@ -1,6 +1,4 @@
 const User = require('../models/User');
-const Group = require('../models/Group');
-const GroupMembership = require('../models/GroupMembership');
 const Follow = require('../models/Follow');
 
 /**
@@ -17,7 +15,7 @@ const checkPostPrivacy = async (req, res, next) => {
     }
     
     const SocialPost = require('../models/SocialPost');
-    const post = await SocialPost.findById(postId).populate('author groupId');
+    const post = await SocialPost.findById(postId).populate('author');
     
     if (!post) {
       return res.status(404).json({ error: 'Post not found' });
@@ -56,22 +54,6 @@ const checkPostPrivacy = async (req, res, next) => {
         }
         break;
         
-      case 'group':
-        // Only group members can see
-        if (!post.groupId) {
-          return res.status(403).json({ error: 'Access denied: Group post' });
-        }
-        
-        const membership = await GroupMembership.findOne({
-          groupId: post.groupId._id,
-          userId,
-          status: 'active'
-        });
-        
-        if (!membership) {
-          return res.status(403).json({ error: 'Access denied: Group members only' });
-        }
-        break;
         
       case 'private':
         // Only the author can see private posts
@@ -157,90 +139,6 @@ const checkUserProfilePrivacy = async (req, res, next) => {
   }
 };
 
-const checkGroupPrivacy = async (req, res, next) => {
-  try {
-    const { groupId } = req.params;
-    const userId = req.user?.userId;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const group = await Group.findById(groupId);
-    if (!group) {
-      return res.status(404).json({ error: 'Group not found' });
-    }
-    
-    // Check group privacy
-    switch (group.privacy) {
-      case 'public':
-        // Anyone can view public groups
-        break;
-        
-      case 'private':
-      case 'invite-only':
-      case 'restricted':
-        // Only members can view private groups
-        const membership = await GroupMembership.findOne({
-          groupId,
-          userId,
-          status: 'active'
-        });
-        
-        if (!membership) {
-          return res.status(403).json({ error: 'Access denied: Members only' });
-        }
-        break;
-        
-      default:
-        return res.status(403).json({ error: 'Access denied: Invalid group privacy setting' });
-    }
-    
-    req.group = group;
-    next();
-    
-  } catch (error) {
-    console.error('Error checking group privacy:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-const checkGroupPermissions = (requiredPermission) => {
-  return async (req, res, next) => {
-    try {
-      const { groupId } = req.params;
-      const userId = req.user?.userId;
-      
-      if (!userId) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      const membership = await GroupMembership.findOne({
-        groupId,
-        userId,
-        status: 'active'
-      });
-      
-      if (!membership) {
-        return res.status(403).json({ error: 'Not a member of this group' });
-      }
-      
-      // Check specific permission
-      if (!membership.permissions[requiredPermission]) {
-        return res.status(403).json({ 
-          error: `Permission denied: ${requiredPermission} not allowed` 
-        });
-      }
-      
-      req.membership = membership;
-      next();
-      
-    } catch (error) {
-      console.error('Error checking group permissions:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  };
-};
 
 const blockUnauthorizedActions = async (req, res, next) => {
   try {
@@ -307,8 +205,6 @@ const requireClubMembership = async (req, res, next) => {
 module.exports = {
   checkPostPrivacy,
   checkUserProfilePrivacy,
-  checkGroupPrivacy,
-  checkGroupPermissions,
   blockUnauthorizedActions,
   requireClubMembership
 };

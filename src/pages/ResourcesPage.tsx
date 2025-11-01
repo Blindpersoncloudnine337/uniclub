@@ -35,6 +35,8 @@ const ResourcesPage: React.FC = () => {
     category: resource.category,
     description: resource.description,
     tags: resource.tags || [],
+    linkUrl: resource.linkUrl,
+    fileUrl: resource.fileUrl,
     // Set reasonable defaults based on type since these fields don't exist in MongoDB
     estimatedTime: resource.type === 'Video' ? '30-45 min' : 
                  resource.type === 'Tutorial' ? '20-30 min' : '15-20 min',
@@ -50,7 +52,9 @@ const ResourcesPage: React.FC = () => {
       : resources.filter((resource: any) => resource.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 px-4 py-6">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -162,7 +166,7 @@ const ResourcesPage: React.FC = () => {
         <div 
           className={
             viewMode === 'grid' 
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6' 
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6' 
               : 'space-y-4'
           }
         >
@@ -175,8 +179,8 @@ const ResourcesPage: React.FC = () => {
           ))}
         </div>
       )}
-
-
+        </div>
+      </div>
     </div>
   );
 };

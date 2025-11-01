@@ -1,6 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import InteractionButtons from '../InteractionButtons';
+import OptimizedImage from '../OptimizedImage';
 import { Clock, TrendingUp } from 'lucide-react';
 
 interface NewsCardProps {
@@ -42,6 +43,7 @@ const NewsCard: React.FC<NewsCardProps> = ({
   summary
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // DEBUG: Log news engagement data
   console.log('📰 NewsCard DEBUG:', {
@@ -53,11 +55,15 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
   const handleArticleClick = () => {
     if (!_id) return;
-    navigate(`/article/${_id}`);
+    navigate(`/article/${_id}`, {
+      state: { referrer: location.pathname }
+    });
   };
 
   const handleCommentsClick = () => {
-    navigate(`/comments/news/${_id}`);
+    navigate(`/comments/news/${_id}`, {
+      state: { referrer: location.pathname }
+    });
   };
 
   // Format timestamp consistently across all pages
@@ -90,14 +96,15 @@ const NewsCard: React.FC<NewsCardProps> = ({
   };
 
   return (
-    <div className="group bg-white dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+    <div className="group bg-white dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full">
       {/* Image Section */}
       {imageUrl && (
-        <div className="relative h-48 overflow-hidden cursor-pointer" onClick={handleArticleClick}>
-          <img
+        <div className="relative h-48 overflow-hidden cursor-pointer flex-shrink-0" onClick={handleArticleClick}>
+          <OptimizedImage
             src={imageUrl}
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+            containerClassName="relative w-full h-full"
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
@@ -118,10 +125,10 @@ const NewsCard: React.FC<NewsCardProps> = ({
         </div>
       )}
 
-      {/* Content Section */}
-      <div className="p-4">
+      {/* Content Section - Flex grow to fill space */}
+      <div className="p-4 flex flex-col flex-grow">
         {/* Meta Row - Source, Author, Time */}
-        <div className="flex items-center justify-between mb-3 text-sm">
+        <div className="flex items-center justify-between mb-3 text-sm flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
             <span className="font-semibold text-emerald-600 dark:text-emerald-500 flex-shrink-0">
               {source}
@@ -143,33 +150,37 @@ const NewsCard: React.FC<NewsCardProps> = ({
 
         {/* Title */}
         <h3
-          className="font-bold text-gray-900 dark:text-white text-lg leading-tight mb-3 cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-500 transition-colors line-clamp-2"
+          className="font-bold text-gray-900 dark:text-white text-lg leading-tight mb-3 cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-500 transition-colors line-clamp-2 flex-shrink-0"
           onClick={handleArticleClick}
         >
           {title}
         </h3>
 
-        {/* Quick Summary - Smaller font to show more content */}
-        {summary?.quickSummary && (
-          <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed mb-4">
-            {summary.quickSummary}
-          </p>
-        )}
+        {/* Quick Summary - Flex grow to fill remaining space */}
+        <div className="flex-grow mb-4">
+          {summary?.quickSummary && (
+            <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed">
+              {summary.quickSummary}
+            </p>
+          )}
+        </div>
 
-        {/* Engagement Section */}
-        <InteractionButtons
-          contentType="News"
-          contentId={_id}
-          engagement={engagement}
-          commentCount={discussionCount}
-          onCommentClick={handleCommentsClick}
-          shareTitle={title}
-          shareType="news"
-          layout="horizontal"
-          size="md"
-          showSave={true}
-          cardType="news"
-        />
+        {/* Engagement Section - Always at bottom */}
+        <div className="mt-auto pt-2">
+          <InteractionButtons
+            contentType="News"
+            contentId={_id}
+            engagement={engagement}
+            commentCount={discussionCount}
+            onCommentClick={handleCommentsClick}
+            shareTitle={title}
+            shareType="news"
+            layout="horizontal"
+            size="md"
+            showSave={true}
+            cardType="news"
+          />
+        </div>
       </div>
     </div>
   );

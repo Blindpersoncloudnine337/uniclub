@@ -13,7 +13,20 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "daily-curator": "cd uniclub-backend && node jobs/midnightCuration.js",
-    "install-all": "npm install && cd uniclub-backend && npm install"
+    "install-all": "npm install && cd uniclub-backend && npm install",
+    "start:win": "powershell -ExecutionPolicy Bypass -File ./scripts/start-dev.ps1",
+    "stop:win": "powershell -ExecutionPolicy Bypass -File ./scripts/stop-dev.ps1",
+    "check:ports": "powershell -ExecutionPolicy Bypass -File ./scripts/check-ports.ps1",
+    "kill:all": "powershell -ExecutionPolicy Bypass -File ./scripts/kill-all-node.ps1",
+    "curate:news": "cd uniclub-backend && node manual-curation.js",
+    "curate:news:verbose": "cd uniclub-backend && node manual-curation.js --verbose",
+    "curate:win": "powershell -ExecutionPolicy Bypass -File ./scripts/curate-news.ps1",
+    "curate:win:verbose": "powershell -ExecutionPolicy Bypass -File ./scripts/curate-news-verbose.ps1",
+    "curate:daemon": "cd uniclub-backend && node jobs/midnightCuration.js",
+    "backup:env": "powershell -ExecutionPolicy Bypass -File ./scripts/backup-env.ps1",
+    "restore:env": "powershell -ExecutionPolicy Bypass -File ./scripts/restore-env.ps1",
+    "dev:admin": "concurrently \"cd uniclub-backend && npm run dev:admin\" \"npm run frontend\"",
+    "backend:admin": "cd uniclub-backend && cross-env PORT=5000 npm run dev:admin"
   },
   "dependencies": {
     "@capacitor/android": "^7.2.0",
@@ -81,7 +94,8 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
-    "@types/node": "^22.5.5",
+    "@types/express": "^5.0.4",
+    "@types/node": "^22.18.12",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
@@ -94,7 +108,8 @@
     "globals": "^15.9.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
-    "typescript": "^5.5.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"
   }

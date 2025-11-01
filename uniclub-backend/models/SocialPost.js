@@ -45,11 +45,6 @@ const socialPostSchema = new mongoose.Schema({
     default: 'text'
   },
   
-  // Group association (optional)
-  groupId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Group'
-  },
   
   // Poll data (when postType is 'poll')
   poll: {
@@ -113,7 +108,6 @@ socialPostSchema.index({ hashtags: 1 }); // Posts by hashtag
 socialPostSchema.index({ mentions: 1 }); // Posts mentioning users
 socialPostSchema.index({ isPinned: 1, pinnedAt: -1 }); // Pinned posts
 socialPostSchema.index({ visibility: 1, status: 1, createdAt: -1 }); // Public/visible posts
-socialPostSchema.index({ groupId: 1, status: 1, createdAt: -1 }); // Group posts
 socialPostSchema.index({ postType: 1, status: 1, createdAt: -1 }); // Posts by type
 socialPostSchema.index({ likes: -1 }); // Popular posts
 socialPostSchema.index({ createdAt: -1, status: 1 }); // Recent active posts for feed

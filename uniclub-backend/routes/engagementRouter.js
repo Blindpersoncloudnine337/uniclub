@@ -275,6 +275,36 @@ router.get('/user/saved/:contentType', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/engagement/user/saved - get all user's saved content (all types)
+router.get('/user/saved', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { limit = 50 } = req.query;
+    
+    // Get saved content for all types
+    const [newsContent, eventContent, resourceContent, socialContent] = await Promise.all([
+      EngagementService.getUserSavedContent(userId, 'News', 1, parseInt(limit)),
+      EngagementService.getUserSavedContent(userId, 'Event', 1, parseInt(limit)),
+      EngagementService.getUserSavedContent(userId, 'Resource', 1, parseInt(limit)),
+      EngagementService.getUserSavedContent(userId, 'SocialPost', 1, parseInt(limit))
+    ]);
+    
+    res.json({
+      success: true,
+      content: {
+        news: newsContent,
+        events: eventContent,
+        resources: resourceContent,
+        social: socialContent
+      },
+      totalCount: newsContent.length + eventContent.length + resourceContent.length + socialContent.length
+    });
+  } catch (error) {
+    console.error('Error getting all user saved content:', error);
+    res.status(500).json({ error: 'Failed to get saved content', details: error.message });
+  }
+});
+
 // GET /api/engagement/stats/:contentType/:contentId - get engagement stats for content
 router.get('/stats/:contentType/:contentId', async (req, res) => {
   try {

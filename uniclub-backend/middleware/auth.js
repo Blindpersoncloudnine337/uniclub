@@ -10,12 +10,10 @@ const authenticateToken = (req, res, next) => {
     return next();
   }
 
-  console.log('🔐 AUTH MIDDLEWARE DEBUG:', {
-    method: req.method,
-    url: req.url,
-    authHeader: req.headers['authorization'],
-    hasAuthHeader: !!req.headers['authorization']
-  });
+  // Reduced logging for production
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔐 AUTH:', req.method, req.url);
+  }
 
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -26,14 +24,17 @@ const authenticateToken = (req, res, next) => {
   }
 
   try {
-    // Handle simple debug token for development - use email-based lookup
-    if (token === 'debug-token-for-ashwin-thomas') {
+    // Portfolio Demo Mode: Allow demo token for public access
+    // This enables visitors to use the app without authentication
+    if (token === 'portfolio-demo-token') {
       req.user = {
         userId: '683b6a7623a3da40933f7e24',
         email: 'ashwin.thomas@utdallas.edu',
-        debug: true  // Keep debug flag for logging and auto-creation
+        name: 'Ashwin Thomas',
+        uniqueId: 'UTDAIC1',
+        isPortfolioDemo: true
       };
-      console.log('🔧 Debug token accepted for Ashwin Thomas (email-based lookup)');
+      console.log('🎨 Portfolio demo mode active');
       return next();
     }
     

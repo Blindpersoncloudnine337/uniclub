@@ -117,6 +117,7 @@ const AvatarManagementModal: React.FC<AvatarManagementModalProps> = ({ isOpen, o
 
   // Handle delete avatar
   const handleDelete = async () => {
+    // TODO: Replace with custom confirmation dialog
     if (!confirm('Are you sure you want to remove your profile picture?')) return;
     
     try {

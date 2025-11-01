@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Download, 
   Play, 
@@ -10,6 +10,7 @@ import {
   Eye
 } from 'lucide-react';
 import InteractionButtons from '../InteractionButtons';
+import api from '../../lib/axios';
 
 interface ResourceCardProps {
   id: string;
@@ -29,6 +30,8 @@ interface ResourceCardProps {
   author?: string;
   isCompact?: boolean;
   isSquare?: boolean;
+  linkUrl?: string;
+  fileUrl?: string;
 }
 
 const ResourceCard: React.FC<ResourceCardProps> = ({
@@ -48,18 +51,43 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
   difficulty = 'Beginner',
   author = 'AI Club Team',
   isCompact = false,
-  isSquare = false
+  isSquare = false,
+  linkUrl,
+  fileUrl
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleCardClick = () => {
-    navigate(`/resource/${id}`);
+    navigate(`/resource/${id}`, {
+      state: { referrer: location.pathname }
+    });
   };
 
-  const handleActionClick = (e?: React.MouseEvent) => {
+  const handleActionClick = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    // Navigate to resource detail page for specific actions
-    navigate(`/resource/${id}`);
+    
+    // If resource has a link (for Video, Tutorial, Tool), open it in new tab AND track view
+    // Otherwise navigate to resource detail page
+    if (linkUrl && (type === 'Video' || type === 'Tutorial' || type === 'Tool')) {
+      // Track view before opening - ONLY counted once per user
+      try {
+        const response = await api.post(`/api/resources/${id}/view`);
+        if (response.data.newView) {
+          console.log('✅ View tracked from card');
+        } else {
+          console.log('ℹ️ Already viewed this resource');
+        }
+      } catch (error) {
+        console.error('Failed to track view:', error);
+        // Still allow viewing even if tracking fails
+      }
+      window.open(linkUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(`/resource/${id}`, {
+        state: { referrer: location.pathname }
+      });
+    }
   };
 
   const getTypeConfig = (type: string) => {
@@ -92,7 +120,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         return {
           icon: <BookOpen className="w-4 h-4" />,
           color: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800',
-          action: 'Read Article',
+          action: 'Learn More',
           iconBg: 'bg-emerald-500',
           bgColor: 'from-emerald-500/10 to-emerald-600/5',
           borderColor: 'border-l-emerald-500',
@@ -104,7 +132,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         return {
           icon: <Code className="w-4 h-4" />,
           color: 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800',
-          action: 'Start Project',
+          action: 'Explore',
           iconBg: 'bg-purple-500',
           bgColor: 'from-purple-500/10 to-purple-600/5',
           borderColor: 'border-l-purple-500',
@@ -226,17 +254,17 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         {/* Stats at bottom */}
         <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            {(type === 'Document' || type === 'Tool') && (
-              <div className={`flex items-center gap-1.5 text-sm font-medium ${
-                type === 'Document' ? 'text-blue-600 dark:text-blue-400' : 'text-purple-600 dark:text-purple-400'
-              }`}>
+            {type === 'Document' && (
+              <div className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
                 <Download className="w-4 h-4" />
                 <span>{downloadCount.toLocaleString()}</span>
               </div>
             )}
-            {(type === 'Video' || type === 'Tutorial') && (
+            {(type === 'Video' || type === 'Tutorial' || type === 'Tool') && (
               <div className={`flex items-center gap-1.5 text-sm font-medium ${
-                type === 'Video' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                type === 'Video' ? 'text-red-600 dark:text-red-400' : 
+                type === 'Tutorial' ? 'text-emerald-600 dark:text-emerald-400' :
+                'text-purple-600 dark:text-purple-400'
               }`}>
                 <Eye className="w-4 h-4" />
                 <span>{views.toLocaleString()}</span>
@@ -373,18 +401,18 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         {/* Stats Row */}
         <div className="flex items-center gap-4 mb-4">
           {/* Primary Stat (Downloads or Views) */}
-          {(type === 'Document' || type === 'Tool') && (
-            <div className={`flex items-center gap-1.5 text-sm font-medium ${
-              type === 'Document' ? 'text-blue-600 dark:text-blue-400' : 'text-purple-600 dark:text-purple-400'
-            }`}>
+          {type === 'Document' && (
+            <div className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
               <Download className="w-4 h-4" />
               <span>{downloadCount.toLocaleString()}</span>
               <span className="text-xs text-gray-500 dark:text-gray-400">downloads</span>
             </div>
           )}
-          {(type === 'Video' || type === 'Tutorial') && (
+          {(type === 'Video' || type === 'Tutorial' || type === 'Tool') && (
             <div className={`flex items-center gap-1.5 text-sm font-medium ${
-              type === 'Video' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+              type === 'Video' ? 'text-red-600 dark:text-red-400' : 
+              type === 'Tutorial' ? 'text-emerald-600 dark:text-emerald-400' :
+              'text-purple-600 dark:text-purple-400'
             }`}>
               <Eye className="w-4 h-4" />
               <span>{views.toLocaleString()}</span>
@@ -393,7 +421,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
           )}
           
           {/* File Size for Downloads */}
-          {fileSize && (type === 'Document' || type === 'Tool') && (
+          {fileSize && type === 'Document' && (
             <div className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
               {fileSize}
             </div>
@@ -418,7 +446,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
         )}
 
         {/* Footer - Interaction Buttons */}
-        <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-auto pt-2" onClick={(e) => e.stopPropagation()}>
           <InteractionButtons
             contentType="Resource"
             contentId={id}
@@ -432,7 +460,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({
             shareTitle={title}
             shareType="resource"
             layout="horizontal"
-            size="sm"
+            size="md"
             showSave={true}
             cardType="resource"
             resourceType={type}

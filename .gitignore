@@ -19,6 +19,8 @@ dist-ssr
 .env.test.local
 .env.production.local
 */.env
+.env.backup
+.env-backups/
 
 # Editor directories and files
 .vscode/*

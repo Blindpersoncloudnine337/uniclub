@@ -104,7 +104,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     console.log('🔍 Checking existing authentication...');
     
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
+      let token = localStorage.getItem('token');
       const savedAuthUser = localStorage.getItem('authUser');
       
       console.log('Token exists:', !!token);
@@ -120,8 +120,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           uniqueId: 'UTDAIC1'
         };
         
-        // Create a simple debug token for API calls (force refresh)
-        const debugToken = 'debug-token-for-ashwin-thomas';
+        // Use the portfolio demo token that backend recognizes (see auth.js middleware)
+        const debugToken = 'portfolio-demo-token';
         localStorage.removeItem('token'); // Clear any expired token first
         localStorage.setItem('token', debugToken);
         localStorage.setItem('authUser', JSON.stringify(debugUser));
@@ -130,7 +130,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(true);
         setUser({
           ...defaultUser,
-          id: '507f1f77bcf86cd799439011',  // Valid ObjectId for debug user
+          id: '683b6a7623a3da40933f7e24',  // Actual user ID from database for Ashwin Thomas
           name: debugUser.name,
           email: debugUser.email,
           memberId: debugUser.uniqueId,
@@ -138,6 +138,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           year: 'Graduate Student'
         });
         console.log('🔧 Debug user set with name:', debugUser.name);
+        console.log('🔧 DEBUG USER CONTEXT - User ID set to:', '683b6a7623a3da40933f7e24');
+        
+        // Fetch complete user profile including avatar from backend for debug user
+        await fetchUserProfile(debugToken);
+        
         setIsLoading(false);
         return;
       }
@@ -188,6 +193,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log('🔍 Fetching user profile with token:', authToken.substring(0, 20) + '...');
+
       const response = await fetch('/api/users/me', {
         method: 'GET',
         headers: {
@@ -198,11 +205,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 User profile response:', data);
         if (data.success && data.user) {
           console.log('👤 Fetched user profile:', data.user);
           
           // Extract avatar data properly - check multiple possible locations
           let avatarData = null;
+          console.log('🔍 Checking avatar data locations:');
+          console.log('  - user.avatar:', data.user.avatar);
+          console.log('  - user.profile.avatar:', data.user.profile?.avatar);
+          
           if (data.user.avatar?.data) {
             avatarData = data.user.avatar.data;
             console.log('🖼️ Found avatar data in user.avatar.data');
@@ -218,20 +230,25 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           }
           
           // Update user state with complete profile data
-          setUser(prev => ({
-            ...prev,
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-            memberId: data.user.uniqueId,
-            profile: data.user.profile || {
-              bio: '',
-              location: '',
-              website: '',
-              interests: []
-            },
-            profileImage: avatarData
-          }));
+          setUser(prev => {
+            const updatedUser = {
+              ...prev,
+              id: data.user.id,
+              name: data.user.name,
+              email: data.user.email,
+              memberId: data.user.uniqueId,
+              profile: data.user.profile || {
+                bio: '',
+                location: '',
+                website: '',
+                interests: []
+              },
+              profileImage: avatarData
+            };
+            
+            console.log('🔍 Setting user state with profileImage:', !!avatarData);
+            return updatedUser;
+          });
 
           // Store avatar in localStorage
           if (avatarData) {

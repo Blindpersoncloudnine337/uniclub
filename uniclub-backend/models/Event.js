@@ -66,6 +66,11 @@ const eventSchema = new mongoose.Schema({
     }
   },
   
+  rsvpLink: {
+    type: String,
+    default: null // Optional external RSVP link (Google Forms, Eventbrite, etc.)
+  },
+  
   // Organizer and speakers
   organizer: {
     type: mongoose.Schema.Types.ObjectId,

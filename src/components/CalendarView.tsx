@@ -101,7 +101,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
   };
 
   return (
-    <div className="calendar-container relative">
+    <div className="calendar-container relative bg-white dark:bg-gray-900">
       <style>{`
         /* Professional Calendar Styling - Emerald Theme Integration */
         .rbc-calendar {
@@ -116,12 +116,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
           display: none; /* Hide month/week/day view switcher */
         }
 
-        /* Professional Toolbar - Light/Dark Emerald Theme */
+        /* Professional Toolbar - Dark Theme */
         .rbc-toolbar {
-          background-color: #d1fae5 !important; /* emerald-100 for light mode */
+          background-color: #f9fafb !important;
           background-image: none !important;
           border: none;
-          border-bottom: 1px solid #6ee7b7; /* emerald-300 for light mode */
+          border-bottom: 1px solid #e5e7eb;
           padding: 20px 24px;
           margin-bottom: 0;
           align-items: center;
@@ -134,19 +134,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
 
         /* Dark mode toolbar */
         .dark .rbc-toolbar {
-          background-color: #044d21 !important; /* emerald-800 for dark mode */
-          border-bottom: 1px solid #065f46; /* emerald-800 for dark mode */
+          background-color: #00281B !important;
+          border-bottom: 1px solid #065f46;
         }
 
-        /* Navigation buttons - Light/Dark emerald theme */
+        /* Navigation buttons - Dark theme */
         .rbc-toolbar button,
         .rbc-btn {
           background-color: transparent !important;
           background-image: none !important;
-          border: 1px solid #10b981 !important; /* emerald-500 for light mode */
-          color: #047857 !important; /* emerald-700 for light mode */
+          border: none !important;
+          color: #6b7280 !important;
           border-radius: 0.5rem !important;
-          padding: 0.5rem !important;
+          padding: 0 !important;
           font-weight: 600 !important;
           font-size: 0.875rem !important;
           transition: all 0.2s ease !important;
@@ -161,16 +161,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
         /* Dark mode navigation buttons */
         .dark .rbc-toolbar button,
         .dark .rbc-btn {
-          border: 1px solid #059669 !important; /* emerald-600 for dark mode */
-          color: #c7f0d6 !important; /* emerald-200 for dark mode */
+          color: #9ca3af !important;
         }
 
         .rbc-toolbar button:hover,
         .rbc-btn:hover {
-          background-color: #10b981 !important; /* emerald-500 for light mode */
+          background-color: #f3f4f6 !important;
           background-image: none !important;
-          color: white !important;
-          border-color: #10b981 !important;
+          color: #1f2937 !important;
           transform: none !important;
           box-shadow: none !important;
         }
@@ -178,18 +176,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
         /* Dark mode hover */
         .dark .rbc-toolbar button:hover,
         .dark .rbc-btn:hover {
-          background-color: #065f46 !important; /* emerald-800 for dark mode */
-          border-color: #065f46 !important; /* emerald-800 for dark mode */
+          background-color: #1f2937 !important;
+          color: #10b981 !important;
         }
 
         .rbc-toolbar button:active,
         .rbc-btn:active,
         .rbc-toolbar button.rbc-active,
         .rbc-btn.rbc-active {
-          background-color: #10b981 !important; /* emerald-500 for light mode */
+          background-color: #e5e7eb !important;
           background-image: none !important;
-          color: white !important;
-          border-color: #10b981 !important;
+          color: #1f2937 !important;
           transform: none !important;
           box-shadow: none !important;
         }
@@ -199,15 +196,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
         .dark .rbc-btn:active,
         .dark .rbc-toolbar button.rbc-active,
         .dark .rbc-btn.rbc-active {
-          background-color: #059669 !important; /* emerald-600 for dark mode */
-          border-color: #059669 !important; /* emerald-600 for dark mode */
+          background-color: #065f46 !important;
+          color: #ffffff !important;
         }
 
-        /* Month/Year Label - Light/Dark emerald for contrast */
+        /* Month/Year Label */
         .rbc-toolbar-label {
           font-size: 1.5rem !important;
           font-weight: 700 !important;
-          color: #047857 !important; /* emerald-700 for light mode */
+          color: #111827 !important;
           margin: 0 !important;
           text-align: center !important;
           letter-spacing: -0.025em;
@@ -221,53 +218,67 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
 
         /* Dark mode label */
         .dark .rbc-toolbar-label {
-          color: #bbf7d0 !important; /* emerald-200 for dark mode */
+          color: #ffffff !important;
         }
 
-        /* Day headers - Light/Dark emerald theme with high contrast */
+        /* Day headers - Dark theme */
         .rbc-header {
-          background-color: #d1fae5 !important; /* emerald-100 for light mode */
+          background-color: #f9fafb !important;
           background-image: none !important;
-          border-bottom: 1px solid #6ee7b7 !important; /* emerald-300 for light mode */
+          border-bottom: 1px solid #e5e7eb !important;
           padding: 16px 8px;
           font-weight: 600 !important;
-          color: #047857 !important; /* emerald-700 for light mode */
-          font-size: 0.875rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        /* Dark mode day headers */
-        .dark .rbc-header {
-          background-color: #064e3b !important; /* emerald-800 for dark mode */
-          border-bottom: 1px solid #065f46 !important; /* emerald-800 for dark mode */
-          color: #bbf7d0 !important; /* emerald-200 for dark mode */
-        }
+          color: #6b7280 !important;
           font-size: 0.875rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           text-align: center;
         }
 
-        /* Calendar Grid - Clean emerald theme */
+        /* Dark mode day headers */
+        .dark .rbc-header {
+          background-color: #00281B !important;
+          border-bottom: 1px solid #065f46 !important;
+          color: #9ca3af !important;
+        }
+
+        /* Calendar Grid - Clean dark theme */
         .rbc-month-view {
-          border: 1px solid #a7f3d0;
+          border: none;
           border-radius: 12px;
           overflow: hidden;
-          background-color: white;
+          background-color: #f9fafb;
           box-shadow: none;
         }
 
-        /* Day cells - Clean appearance with emerald accents */
+        /* Dark mode calendar grid */
+        .dark .rbc-month-view {
+          background-color: #1f2937;
+        }
+
+        /* Day cells - Dark theme */
         .rbc-day-bg {
-          border-right: 1px solid #a7f3d0;
-          border-bottom: 1px solid #a7f3d0;
+          border-right: 1px solid #d1d5db;
+          border-bottom: 1px solid #d1d5db;
           transition: background-color 0.2s ease;
           min-height: 100px;
+          background-color: white;
+        }
+
+        /* Dark mode day cells */
+        .dark .rbc-day-bg {
+          background-color: #1a1d24;
+          border-right: 1px solid #374151;
+          border-bottom: 1px solid #374151;
         }
 
         .rbc-day-bg:hover {
-          background-color: #ecfdf5;
+          background-color: #f3f4f6;
+        }
+
+        /* Dark mode hover */
+        .dark .rbc-day-bg:hover {
+          background-color: #374151;
         }
 
         /* Date numbers - Clean typography */
@@ -279,14 +290,24 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
           text-align: left;
         }
 
+        /* Dark mode date cells */
+        .dark .rbc-date-cell {
+          color: #9ca3af;
+        }
+
         /* Today's date - High contrast emerald highlight */
         .rbc-today {
-          background-color: #ecfdf5;
+          background-color: #f3f4f6;
           position: relative;
         }
 
+        /* Dark mode today */
+        .dark .rbc-today {
+          background-color: #1f2937;
+        }
+
         .rbc-today .rbc-date-cell {
-          background-color: #065f46 !important;
+          background-color: #10b981 !important;
           color: white !important;
           border-radius: 8px;
           margin: 4px;
@@ -297,21 +318,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
           font-weight: 700;
         }
 
-        /* Off-range dates (other month) - Muted greyish-blue appearance */
+        /* Off-range dates (other month) */
         .rbc-off-range-bg {
-          background-color: #f1f5f9 !important;
+          background-color: #f9fafb !important;
           opacity: 1;
         }
 
+        /* Dark mode off-range */
+        .dark .rbc-off-range-bg {
+          background-color: #111827 !important;
+        }
+
         .rbc-off-range .rbc-date-cell {
-          color: #64748b !important;
+          color: #d1d5db !important;
           opacity: 1;
           font-weight: 400 !important;
         }
 
+        /* Dark mode off-range text */
+        .dark .rbc-off-range .rbc-date-cell {
+          color: #4b5563 !important;
+        }
+
         .rbc-off-range-bg:hover {
-          background-color: #e2e8f0 !important;
+          background-color: #f3f4f6 !important;
           opacity: 1;
+        }
+
+        /* Dark mode hover */
+        .dark .rbc-off-range-bg:hover {
+          background-color: #1f2937 !important;
         }
 
         /* Events - High contrast emerald design */
@@ -483,58 +519,60 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events }) => {
         }
       `}</style>
 
-      <Calendar
-        localizer={localizer}
-        events={calendarEvents}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ 
-          height: 650,
-          width: '100%',
-        }}
-        onSelectEvent={handleSelectEvent}
-        eventPropGetter={eventStyleGetter}
-        views={['month']}
-        defaultView="month"
-        popup={true}
-        popupOffset={{ x: 10, y: 10 }}
-        messages={{
-          next: "Next",
-          previous: "Previous", 
-          today: "Today",
-          showMore: (total) => `+${total} more events`
-        }}
-        dayLayoutAlgorithm="overlap"
-        step={60}
-        showMultiDayTimes={false}
-        components={{
-          toolbar: ({ label, onNavigate, onView }) => (
-            <div className="rbc-toolbar">
-              <button
-                type="button"
-                onClick={() => onNavigate('PREV')}
-                className="rbc-toolbar-btn flex items-center justify-center w-10 h-10 p-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              
-              <h2 className="rbc-toolbar-label">{label}</h2>
-              
-              <button
-                type="button"
-                onClick={() => onNavigate('NEXT')}
-                className="rbc-toolbar-btn flex items-center justify-center w-10 h-10 p-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          )
-        }}
-      />
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <Calendar
+          localizer={localizer}
+          events={calendarEvents}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ 
+            height: 650,
+            width: '100%',
+          }}
+          onSelectEvent={handleSelectEvent}
+          eventPropGetter={eventStyleGetter}
+          views={['month']}
+          defaultView="month"
+          popup={true}
+          popupOffset={{ x: 10, y: 10 }}
+          messages={{
+            next: "Next",
+            previous: "Previous", 
+            today: "Today",
+            showMore: (total) => `+${total} more events`
+          }}
+          dayLayoutAlgorithm="overlap"
+          step={60}
+          showMultiDayTimes={false}
+          components={{
+            toolbar: ({ label, onNavigate, onView }) => (
+              <div className="rbc-toolbar">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('PREV')}
+                  className="rbc-toolbar-btn flex items-center justify-center w-10 h-10 p-0"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                
+                <h2 className="rbc-toolbar-label">{label}</h2>
+                
+                <button
+                  type="button"
+                  onClick={() => onNavigate('NEXT')}
+                  className="rbc-toolbar-btn flex items-center justify-center w-10 h-10 p-0"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )
+          }}
+        />
+      </div>
     </div>
   );
 };

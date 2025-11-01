@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import api from '../lib/axios';
 
 export interface Comment {
@@ -68,7 +69,21 @@ export const useComments = (
     autoFetch?: boolean;
   } = {}
 ): UseCommentsReturn => {
-  const { user, getAuthHeaders } = useAuth();
+  const { user: authUser, getAuthHeaders } = useAuth();
+  const { user: userProfile } = useUser();
+  
+  // Use the same logic as other components - try both contexts
+  const user = authUser || userProfile;
+  
+  // DEBUG: Log user context in useComments
+  console.log('🔍 useComments user context:', {
+    authUser,
+    userProfile,
+    finalUser: user,
+    hasUser: !!user,
+    userId: user?.id
+  });
+  
   const { limit = 20, sort = 'newest', autoFetch = true } = options;
 
   const [comments, setComments] = useState<Comment[]>([]);
@@ -103,9 +118,14 @@ export const useComments = (
       
       // DEBUG: Check comment structure (NO REPLIES)
       if (data.comments && data.comments.length > 0) {
+        const firstComment = data.comments[0];
         console.log('🔍 First comment structure:', {
-          id: data.comments[0]._id,
-          content: data.comments[0].content,
+          id: firstComment._id,
+          content: firstComment.text || firstComment.content,
+          userId: firstComment.userId,
+          userIdType: typeof firstComment.userId,
+          userIdId: firstComment.userId?._id,
+          userName: firstComment.userId?.name,
           isTopLevel: true // All comments are top-level now
         });
       }
@@ -338,19 +358,9 @@ export const useComments = (
     try {
       console.log('🗑️ Deleting comment:', commentId);
 
-      const response = await fetch(`/api/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          ...getAuthHeaders(),
-        },
-      });
+      const response = await api.delete(`/api/comments/${commentId}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete comment');
-      }
-
-      console.log('✅ Comment deleted permanently');
+      console.log('✅ Comment deleted permanently:', response.data);
 
       // Remove comment and its replies completely from the UI
       const removeComment = (comments: Comment[]): Comment[] => {

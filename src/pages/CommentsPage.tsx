@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Heart, MessageSquare, MessageCircle, User, Calendar } from 'lucide-react';
 import CommentList from '../components/CommentList';
 import CommentInput from '../components/CommentInput';
 import { useComments } from '../hooks/useComments';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import api from '../lib/axios';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -13,6 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { ScrollArea } from '../components/ui/scroll-area';
+import BackNavigation from '../components/BackNavigation';
+import { getDefaultReferrer } from '../utils/navigationUtils';
 
 // Define post types for the preview section
 interface BasePost {
@@ -52,26 +55,46 @@ interface BasePost {
 
 const CommentsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user: authUser } = useAuth();
+  const { user: userProfile } = useUser();
+  
+  // Use the same logic as SocialPage - try both contexts
+  const currentUser = authUser || userProfile;
+  
+  // Removed confirmation dialog state - handled by CommentList component
+
 
   // DEBUG: Log current user data to verify authentication
   console.log('🔍 DEBUG - CommentsPage user data:', {
-    user,
-    hasUser: !!user,
-    userId: user?.id,
-    userIdAlt: user?._id,
-    userName: user?.name,
-    userEmail: user?.email
+    authUser,
+    userProfile,
+    currentUser,
+    hasCurrentUser: !!currentUser,
+    currentUserId: currentUser?.id,
+    currentUserIdAlt: currentUser?._id,
+    currentUserName: currentUser?.name,
+    currentUserEmail: currentUser?.email
   });
 
   // Get type and id from route params
   const { type, id } = useParams<{ type: string; id: string }>();
+  
+  // Get referrer from navigation state, with smart defaults based on content type
+  const referrer = location.state?.referrer || getDefaultReferrer(type || '');
+  
+  // DEBUG: Log referrer information
+  console.log('🔍 CommentsPage referrer debug:', {
+    locationState: location.state,
+    hasReferrer: !!location.state?.referrer,
+    referrer: location.state?.referrer,
+    fallbackReferrer: getDefaultReferrer(type || ''),
+    finalReferrer: referrer,
+    currentPath: location.pathname
+  });
 
 
-  // Scroll to top when component mounts or type/id changes
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [type, id]);
+  // Scroll to top is now handled globally by ScrollToTop component
 
   // Fetch post data based on type and id
   const { data: post, isLoading: postLoading, error: postError } = useQuery({
@@ -115,6 +138,9 @@ const CommentsPage: React.FC = () => {
           } else if (type === 'resource' && response.data.resource) {
             console.log('📦 Extracted resource:', response.data.resource);
             return response.data.resource;
+          } else if (type === 'event' && response.data.event) {
+            console.log('📦 Extracted event:', response.data.event);
+            return response.data.event;
           } else if (response.data.post) {
             console.log('📦 Extracted post:', response.data.post);
             return response.data.post;
@@ -197,13 +223,11 @@ const CommentsPage: React.FC = () => {
   };
 
   const handleDelete = async (commentId: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
-    
     try {
       await deleteComment(commentId);
     } catch (error) {
       console.error('Error deleting comment:', error);
-      alert('Failed to delete comment. Please try again.');
+      // Error handling is already done in the useComments hook
     }
   };
 
@@ -254,7 +278,7 @@ const CommentsPage: React.FC = () => {
     const getDate = () => {
       switch (type) {
         case 'news': return post.publishedAt;
-        case 'event': return post.createdAt;
+        case 'event': return post.startDate || post.date || post.createdAt; // Fixed: Use startDate for events
         case 'resource': return post.dateAdded || post.createdAt;
         case 'social': return post.createdAt;
         default: return new Date();
@@ -264,7 +288,7 @@ const CommentsPage: React.FC = () => {
     const getAuthor = () => {
       switch (type) {
         case 'news': return post.source;
-        case 'event': return 'Event';
+        case 'event': return post.organizer?.name || 'Event Organizer'; // Fixed: Use organizer name
         case 'resource': return post.uploadedBy?.name || 'Resource';
         case 'social': return post.author?.name || 'User';
         default: return 'Content';
@@ -274,8 +298,8 @@ const CommentsPage: React.FC = () => {
     const getContentType = () => {
       switch (type) {
         case 'news': return { label: 'News', variant: 'default' as const };
-        case 'event': return { label: 'Event', variant: 'secondary' as const };
-        case 'resource': return { label: 'Resource', variant: 'outline' as const };
+        case 'event': return { label: 'Event', variant: 'default' as const }; // Fixed: Use same variant as News
+        case 'resource': return { label: 'Resource', variant: 'default' as const }; // Fixed: Use same variant as News
         case 'social': return { label: 'Discussion', variant: 'destructive' as const };
         default: return { label: 'Content', variant: 'default' as const };
       }
@@ -308,10 +332,15 @@ const CommentsPage: React.FC = () => {
             </div>
           </div>
           
-          <h1 className="text-xl font-bold mb-3 line-clamp-2">{title}</h1>
-          
-          {description && (
-            <p className="text-muted-foreground mb-4 line-clamp-2">{description}</p>
+          {type === 'social' ? (
+            <p className="text-base text-gray-900 dark:text-white mb-4 leading-relaxed whitespace-pre-wrap">{title}</p>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold mb-3 line-clamp-2">{title}</h1>
+              {description && (
+                <p className="text-muted-foreground mb-4 line-clamp-2">{description}</p>
+              )}
+            </>
           )}
           
           <div className="flex items-center">
@@ -330,7 +359,9 @@ const CommentsPage: React.FC = () => {
             </Avatar>
             <div>
               <p className="text-sm font-medium">{author}</p>
-              <p className="text-xs text-muted-foreground">Author</p>
+              <p className="text-xs text-muted-foreground">
+                {type === 'event' ? 'Event Organizer' : 'Author'}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -340,33 +371,13 @@ const CommentsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Creative Header Layout */}
-      <div className="sticky top-0 z-40 w-full border-b bg-white/95 dark:bg-gray-800/95 backdrop-blur shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          {/* Creative flowing layout */}
-          <div className="flex items-center space-x-4">
-            {/* Back button - clean and minimal */}
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors" />
-            </button>
-            
-            {/* Flowing title section */}
-            <div className="flex items-center space-x-3 flex-1">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Comments</h1>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Back Navigation Header */}
+      <BackNavigation 
+        referrer={referrer}
+        contentType={type}
+        fallbackReferrer={getDefaultReferrer(type || '')}
+        className="border-b bg-white/95 dark:bg-gray-800/95 backdrop-blur shadow-sm"
+      />
       
       {/* Main Content with proper spacing */}
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -382,7 +393,12 @@ const CommentsPage: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Join the conversation</h3>
             </div>
             <CommentInput 
-              onSubmit={handleAddComment}
+              contentType={type}
+              contentId={id}
+              onCommentAdded={() => {
+                console.log('🔄 Comment added, refetching comments...');
+                refetchComments();
+              }}
               loading={commentsLoading}
               placeholder="Share your thoughts..."
             />
@@ -431,11 +447,14 @@ const CommentsPage: React.FC = () => {
                 onDelete={handleDelete}
                 onLoadMore={hasMore ? loadMore : undefined}
                 hasMore={hasMore}
+                currentUser={currentUser}
               />
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Confirmation dialog is handled by CommentList component */}
     </div>
   );
 };

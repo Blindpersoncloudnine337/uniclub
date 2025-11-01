@@ -113,6 +113,9 @@ router.get('/:id', async (req, res) => {
     });
     
     console.log('✅ Returning article successfully');
+    console.log('📰 Publisher logo in response:', news.publisherLogo);
+    console.log('📰 Source in response:', news.source);
+    
     res.json({ 
       ...news, 
       summary: news.summary || { raw: news.excerpt, whyItMatters: null },

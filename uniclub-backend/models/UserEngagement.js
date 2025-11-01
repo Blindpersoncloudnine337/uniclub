@@ -25,12 +25,14 @@ const userEngagementSchema = new mongoose.Schema({
   saved: { type: Boolean, default: false },
   shared: { type: Boolean, default: false },
   viewed: { type: Boolean, default: false },
+  downloaded: { type: Boolean, default: false },
   
   // Timestamps for engagement analytics
   likedAt: { type: Date },
   savedAt: { type: Date },
   sharedAt: { type: Date },
   viewedAt: { type: Date },
+  downloadedAt: { type: Date },
   lastEngagedAt: { type: Date, default: Date.now }
   
 }, { 

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Resource = require('../models/Resource');
 const Comment = require('../models/Comment');
+const UserEngagement = require('../models/UserEngagement');
 const authenticateToken = require('../middleware/auth');
 const mongoose = require('mongoose');
 
@@ -122,8 +123,8 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Resource not found' });
     }
     
-    // Increment view count
-    await Resource.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+    // Note: View count is tracked separately when user actually views the content
+    // (see POST /api/resources/:id/view endpoint)
     
     res.json({
       success: true,
@@ -192,28 +193,144 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/resources/:id/download - increment download count
-router.post('/:id/download', async (req, res) => {
+// POST /api/resources/:id/view - increment view count (for Video, Tutorial, Tool)
+// ONLY counts once per user - tracks when user clicks the view/open button
+router.post('/:id/view', authenticateToken, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: 'Invalid resource ID' });
     }
     
-    const resource = await Resource.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { downloadCount: 1 } },
-      { new: true }
-    );
+    const userId = req.user.userId;
+    const resourceId = req.params.id;
     
-    if (!resource) {
-      return res.status(404).json({ error: 'Resource not found' });
+    // Check if user already viewed this resource
+    const existingEngagement = await UserEngagement.findOne({
+      user: userId,
+      contentType: 'Resource',
+      contentId: resourceId
+    });
+    
+    // Only increment if user hasn't viewed before
+    if (!existingEngagement || !existingEngagement.viewed) {
+      // Update or create engagement record
+      await UserEngagement.findOneAndUpdate(
+        { user: userId, contentType: 'Resource', contentId: resourceId },
+        { 
+          user: userId,
+          contentType: 'Resource',
+          contentId: resourceId,
+          viewed: true,
+          viewedAt: new Date(),
+          lastEngagedAt: new Date()
+        },
+        { upsert: true, new: true }
+      );
+      
+      // Increment the view count on the resource
+      const resource = await Resource.findByIdAndUpdate(
+        resourceId,
+        { $inc: { views: 1 } },
+        { new: true }
+      );
+      
+      if (!resource) {
+        return res.status(404).json({ error: 'Resource not found' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'View count updated',
+        views: resource.views,
+        newView: true
+      });
+    } else {
+      // User already viewed this resource
+      const resource = await Resource.findById(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({ error: 'Resource not found' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Already viewed',
+        views: resource.views,
+        newView: false
+      });
+    }
+  } catch (error) {
+    console.error('Error updating view count:', error);
+    res.status(500).json({ error: 'Failed to update view count', details: error.message });
+  }
+});
+
+// POST /api/resources/:id/download - increment download count
+// ONLY counts once per user - tracks when user clicks the download button
+router.post('/:id/download', authenticateToken, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid resource ID' });
     }
     
-    res.json({
-      success: true,
-      message: 'Download count updated',
-      downloadCount: resource.downloadCount
+    const userId = req.user.userId;
+    const resourceId = req.params.id;
+    
+    // Check if user already downloaded this resource
+    const existingEngagement = await UserEngagement.findOne({
+      user: userId,
+      contentType: 'Resource',
+      contentId: resourceId
     });
+    
+    // Only increment if user hasn't downloaded before
+    if (!existingEngagement || !existingEngagement.downloaded) {
+      // Update or create engagement record
+      await UserEngagement.findOneAndUpdate(
+        { user: userId, contentType: 'Resource', contentId: resourceId },
+        { 
+          user: userId,
+          contentType: 'Resource',
+          contentId: resourceId,
+          downloaded: true,
+          downloadedAt: new Date(),
+          lastEngagedAt: new Date()
+        },
+        { upsert: true, new: true }
+      );
+      
+      // Increment the download count on the resource
+      const resource = await Resource.findByIdAndUpdate(
+        resourceId,
+        { $inc: { downloadCount: 1 } },
+        { new: true }
+      );
+      
+      if (!resource) {
+        return res.status(404).json({ error: 'Resource not found' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Download count updated',
+        downloadCount: resource.downloadCount,
+        newDownload: true
+      });
+    } else {
+      // User already downloaded this resource
+      const resource = await Resource.findById(resourceId);
+      
+      if (!resource) {
+        return res.status(404).json({ error: 'Resource not found' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Already downloaded',
+        downloadCount: resource.downloadCount,
+        newDownload: false
+      });
+    }
   } catch (error) {
     console.error('Error updating download count:', error);
     res.status(500).json({ error: 'Failed to update download count', details: error.message });

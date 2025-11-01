@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Textarea } from '../components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import ConfirmationDialog from '../components/ui/ConfirmationDialog';
 
 interface CommentListProps {
   comments: Comment[];
@@ -19,6 +20,7 @@ interface CommentListProps {
   onDelete?: (commentId: string) => Promise<void>;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  currentUser?: any;
 }
 
 interface CommentItemProps {
@@ -45,19 +47,32 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.text);
   const [showActions, setShowActions] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
   // DEBUG: Log user ID matching for delete button visibility
+  const currentUserId = currentUser?.id || currentUser?._id;
+  const commentAuthorId = comment.userId._id || comment.userId.id || comment.userId;
+  
+  // Convert both IDs to strings for comparison
+  const currentUserIdStr = String(currentUserId);
+  const commentAuthorIdStr = String(commentAuthorId);
+  
+  const isAuthor = currentUser && currentUserIdStr === commentAuthorIdStr;
+  
   console.log('🔍 DEBUG - CommentList user matching:', {
     currentUser,
-    currentUserId: currentUser?.id,
-    currentUserIdAlt: currentUser?._id,
-    commentUserId: comment.userId._id,
+    currentUserId: currentUserId,
+    currentUserIdStr: currentUserIdStr,
+    commentAuthorId: commentAuthorId,
+    commentAuthorIdStr: commentAuthorIdStr,
     commentUserName: comment.userId.name,
-    isAuthor: currentUser && (comment.userId._id === currentUser.id || comment.userId._id === currentUser._id)
+    isAuthor: isAuthor,
+    stringComparison: `"${currentUserIdStr}" === "${commentAuthorIdStr}"`,
+    exactMatch: currentUserIdStr === commentAuthorIdStr
   });
-
-  const isAuthor = currentUser && (comment.userId._id === currentUser.id || comment.userId._id === currentUser._id);
+  
   const isDeleted = comment.status === 'deleted';
 
   // Close actions menu when clicking outside
@@ -117,18 +132,22 @@ const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
   const handleDelete = async () => {
     if (!onDelete) return;
     
-    // Show confirmation dialog
-    const confirmed = window.confirm('Are you sure you want to delete this comment? This action cannot be undone.');
-    if (!confirmed) return;
-    
+    setIsDeleting(true);
     try {
       await onDelete(comment._id);
+      setShowDeleteConfirm(false);
     } catch (error) {
       console.error('Error deleting comment:', error);
-      alert('Failed to delete comment. Please try again.');
+      // Error handling is done in the parent component
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -137,7 +156,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <div className="mb-6">
+    <>
+      <div className="mb-6">
       {/* Clean comment card with proper spacing */}
       <div className="flex space-x-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
         {/* Smaller Avatar */}
@@ -179,7 +199,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                       <Edit className="w-4 h-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDelete} className="text-red-600 dark:text-red-400">
+                    <DropdownMenuItem onClick={handleDeleteClick} className="text-red-600 dark:text-red-400">
                       <Trash className="w-4 h-4 mr-2" />
                       Delete
                     </DropdownMenuItem>
@@ -230,7 +250,21 @@ const CommentItem: React.FC<CommentItemProps> = ({
           )}
         </div>
       </div>
-    </div>
+      </div>
+      
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete Comment"
+        cancelText="Cancel"
+        type="danger"
+        isLoading={isDeleting}
+      />
+    </>
   );
 };
 
@@ -242,9 +276,11 @@ const CommentList: React.FC<CommentListProps> = ({
   onEdit,
   onDelete,
   onLoadMore,
-  hasMore
+  hasMore,
+  currentUser
 }) => {
-  const { user } = useAuth();
+  // Use passed currentUser instead of useAuth hook
+  const user = currentUser;
 
   if (loading && comments.length === 0) {
     return (

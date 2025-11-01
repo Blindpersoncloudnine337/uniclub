@@ -12,13 +12,20 @@ import ResourceDetailPage from './pages/ResourceDetailPage';
 import CommentsPage from './pages/CommentsPage';
 import AuthPage from './pages/AuthPage';
 import DebugPage from './pages/DebugPage';
+import SavedPostsPage from './pages/SavedPostsPage';
+import PastEventDetailPage from './pages/PastEventDetailPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/saved-posts" element={<SavedPostsPage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/article/:id" element={<ArticlePage />} />
+      <Route path="/news/:id" element={<ArticlePage />} />
       <Route path="/event/:id" element={<EventDetailPage />} />
+      <Route path="/past-events/:id" element={<PastEventDetailPage />} />
       <Route path="/resource/:id" element={<ResourceDetailPage />} />
       <Route path="/comments/:type/:id" element={<CommentsPage />} />
       <Route path="/debug" element={<DebugPage />} />

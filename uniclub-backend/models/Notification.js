@@ -20,11 +20,29 @@ const notificationSchema = new mongoose.Schema({
     required: true
   },
   
-  // The article the comment belongs to
+  // Content references - only one should be set based on content type
   article: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'News',
-    required: true
+    required: false
+  },
+  
+  event: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: false
+  },
+  
+  resource: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Resource',
+    required: false
+  },
+  
+  post: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SocialPost',
+    required: false
   },
   
   // The user who triggered the notification (e.g., who replied or liked)

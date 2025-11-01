@@ -33,6 +33,7 @@ export interface MongoEvent {
   skillLevel?: string;
   prerequisites?: string[];
   tags?: string[];
+  imageUrl?: string;
 }
 
 export interface CalendarEvent {
@@ -114,7 +115,7 @@ export function transformToEventCard(event: MongoEvent): EventCardData {
     attendeeCount: event.rsvpCount || 0,
     rsvpCount: event.rsvpCount || 0,
     discussionCount: event.discussionCount || 0,
-    imageUrl: getEventImageUrl(event.eventType, event.category),
+    imageUrl: event.imageUrl || getEventImageUrl(event.eventType, event.category),
     category: event.category?.[0] || 'General',
     eventType: event.eventType,
     isFeatured: false,
@@ -138,13 +139,11 @@ function formatEventLocation(location?: MongoEvent['location']): string {
     case 'virtual':
       return 'Virtual Event';
     case 'physical':
-      let formatted = location.address || '';
-      if (location.room) {
-        formatted += location.room ? `, ${location.room}` : '';
-      }
-      return formatted || 'Physical Location';
+      // For card display, prioritize room name, fallback to address
+      return location.room || location.address || 'Physical Location';
     case 'hybrid':
-      return `${location.address || 'Physical Location'} + Virtual`;
+      const roomOrAddress = location.room || location.address || 'Physical Location';
+      return `${roomOrAddress} + Virtual`;
     default:
       return 'TBD';
   }

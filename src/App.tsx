@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Layout from './components/Layout';
+import ScrollToTop from './components/ScrollToTop';
 import { initializeMobileFeatures } from './lib/mobile';
+import { initPortfolioDemo } from './utils/portfolioDemo';
 import { UserProvider } from './context/UserContext';
 import { PopupProvider } from './context/PopupContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -22,6 +24,9 @@ const queryClient = new QueryClient({
 
 function App() {
   useEffect(() => {
+    // Initialize portfolio demo mode (auto-login for visitors)
+    initPortfolioDemo();
+    
     // Initialize mobile features
     initializeMobileFeatures().catch(console.error);
   }, []);
@@ -29,6 +34,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
+        <ScrollToTop />
         <ThemeProvider>
           <AuthProvider>
             <UserProvider>

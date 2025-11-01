@@ -20,9 +20,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 // Specifically serve avatar files (ensure avatars subdirectory is accessible)
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'public', 'uploads', 'avatars')));
 
-// Log every request at the very top
+// Log only important requests (disable body logging for performance)
 app.use((req, res, next) => {
-  console.log(`[REQUEST] ${req.method} ${req.url} - Body:`, req.body);
+  // Only log in development, and skip body to improve performance
+  if (process.env.NODE_ENV === 'development' && !req.url.includes('/api/')) {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+  }
   next();
 });
 
@@ -30,9 +33,13 @@ const PORT = process.env.PORT || 5000;
 
 // Simple and reliable CORS configuration
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://192.168.1.191:8080', 'http://localhost:8081', 'http://127.0.0.1:8081', 'http://192.168.1.191:8081'],
+  origin: [
+    'http://localhost:8080', 'http://127.0.0.1:8080', 'http://192.168.1.191:8080',
+    'http://localhost:8081', 'http://127.0.0.1:8081', 'http://192.168.1.191:8081',
+    'http://localhost:8082', 'http://127.0.0.1:8082', 'http://192.168.1.191:8082'
+  ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -46,31 +53,30 @@ if (!mongoUri) {
 }
 console.log('🔗 Connecting to MongoDB...');
 
-mongoose.connect(mongoUri)
+// Configure MongoDB connection with performance optimizations
+const mongoOptions = {
+  maxPoolSize: 10, // Connection pool size
+  minPoolSize: 2,
+  serverSelectionTimeoutMS: 5000, // Faster timeout
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000
+};
+
+mongoose.connect(mongoUri, mongoOptions)
   .then(async () => {
-    console.log('Connected to MongoDB');
+    console.log('✅ Connected to MongoDB');
     console.log('📂 Database name:', mongoose.connection.db.databaseName);
     
-    // Test EnrolledUser access immediately
+    // Skip heavy queries on startup - just test connectivity
     try {
-      console.log('🔍 Testing EnrolledUser collection access...');
-      const enrolledCount = await EnrolledUser.countDocuments();
-      console.log(`📊 EnrolledUser count via Mongoose: ${enrolledCount}`);
-      
-      // Also test direct collection access
-      const directCount = await mongoose.connection.db.collection('EnrolledUser').countDocuments();
-      console.log(`📊 EnrolledUser count via direct access: ${directCount}`);
-      
-      if (enrolledCount > 0) {
-        const users = await EnrolledUser.find({});
-        console.log('👥 Found enrolled users:', users);
-      }
+      const testCount = await EnrolledUser.countDocuments();
+      console.log(`📊 EnrolledUser collection: ${testCount} users`);
     } catch (error) {
-      console.error('❌ Error testing EnrolledUser:', error);
+      console.error('❌ Error accessing EnrolledUser:', error);
     }
   })
   .catch((err) => {
-    console.error('Failed to connect to MongoDB:', err);
+    console.error('❌ Failed to connect to MongoDB:', err);
     process.exit(1);
   });
 
@@ -262,8 +268,12 @@ console.log('✅ Curation router loaded');
 const resourceRouter = require('./routes/resourceRouter');
 console.log('✅ Resource router loaded');
 
-const groupRouter = require('./routes/groupRouter');
-console.log('✅ Group router loaded');
+const notificationRouter = require('./routes/notificationRouter');
+console.log('✅ Notification router loaded');
+
+const pastEventRouter = require('./routes/pastEventRouter');
+console.log('✅ Past Event router loaded');
+
 
 // Mount routers
 console.log('🔗 Mounting routers...');
@@ -307,13 +317,21 @@ console.log('✅ Curation router mounted at /api/curation');
 app.use('/api/resources', resourceRouter);
 console.log('✅ Resource router mounted at /api/resources');
 
-app.use('/api/groups', groupRouter);
-console.log('✅ Group router mounted at /api/groups');
+app.use('/api/notifications', notificationRouter);
+console.log('✅ Notification router mounted at /api/notifications');
+
+app.use('/api/past-events', pastEventRouter);
+console.log('✅ Past Event router mounted at /api/past-events');
 
 // Featured router
 const featuredRouter = require('./routes/featuredRouter');
 app.use('/api/featured', featuredRouter);
 console.log('✅ Featured router mounted at /api/featured');
+
+// Search router
+const searchRouter = require('./routes/searchRouter');
+app.use('/api/search', searchRouter);
+console.log('✅ Search router mounted at /api/search');
 
 // Debug endpoint to see what's actually in the database
 app.get('/api/debug/enrolled', async (req, res) => {
@@ -348,7 +366,7 @@ app.listen(PORT, () => {
   console.log('   💬 Comments: /api/comments/*');
   console.log('   🎨 Curation: /api/curation/*');
   console.log('   📚 Resources: /api/resources/*');
-  console.log('   👥 Groups: /api/groups/*');
+  console.log('   📜 Past Events: /api/past-events/*');
   console.log('   🔍 Debug: /api/debug/enrolled');
   console.log('   ❤️ Health: /api/health');
 }); 

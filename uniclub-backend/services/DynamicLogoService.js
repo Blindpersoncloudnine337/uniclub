@@ -177,7 +177,10 @@ class DynamicLogoService {
           console.log(`🔄 Trying publisher name mapping: ${publisherName} -> ${mappedDomain}`);
           const logoUrl = await this.fetchLogoForDomain(mappedDomain);
           if (logoUrl) {
+            console.log(`✅ Successfully found logo via name mapping for ${publisherName}: ${logoUrl}`);
             return logoUrl;
+          } else {
+            console.log(`❌ Failed to find logo via name mapping for ${publisherName} (${mappedDomain})`);
           }
         }
       }

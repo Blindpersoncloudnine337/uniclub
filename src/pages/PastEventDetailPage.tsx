@@ -1,7 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, Users, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Tag, ExternalLink } from 'lucide-react';
+import EventGallery from '../components/EventGallery';
 
 const PastEventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -175,6 +176,39 @@ const PastEventDetailPage: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Recording/Video Link */}
+          {event.link && (
+            <div className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-700 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-emerald-600 dark:bg-emerald-500 rounded-full flex items-center justify-center">
+                  <ExternalLink className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Event Recording Available
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Watch the recording of this event to catch up on what you missed!
+                  </p>
+                  <a
+                    href={event.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Watch Recording
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Event Gallery */}
+          {event.gallery && event.gallery.length > 0 && (
+            <EventGallery eventId={id!} gallery={event.gallery} />
+          )}
         </div>
       </div>
     </div>

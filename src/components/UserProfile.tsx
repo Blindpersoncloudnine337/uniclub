@@ -168,6 +168,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {/* App Version */}
+            <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+              <p className="font-medium">Uniclub v1.0.0</p>
+              <p className="mt-1">© 2025 Ashwin Thomas</p>
+            </div>
+
           </div>
         </div>
       </div>

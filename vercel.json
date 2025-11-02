@@ -19,8 +19,16 @@
       "dest": "uniclub-backend/index.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/Assets/(.*)",
+      "dest": "/dist/Assets/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json|woff|woff2|ttf|eot))",
       "dest": "/dist/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/index.html"
     }
   ],
   "env": {

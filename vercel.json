@@ -13,26 +13,29 @@
       }
     }
   ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/uniclub-backend/index.js"
+    }
+  ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "uniclub-backend/index.js"
-    },
-    {
       "src": "/assets/(.*)",
-      "dest": "/dist/assets/$1"
+      "dest": "/assets/$1",
+      "continue": true
     },
     {
       "src": "/Assets/(.*)",
-      "dest": "/dist/Assets/$1"
+      "dest": "/Assets/$1",
+      "continue": true
     },
     {
-      "src": "/manifest.json",
-      "dest": "/dist/manifest.json"
+      "handle": "filesystem"
     },
     {
-      "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "src": "^/(?!api/).*",
+      "dest": "/index.html"
     }
   ],
   "env": {

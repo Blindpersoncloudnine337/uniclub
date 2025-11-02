@@ -123,8 +123,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onBack }) => {
             
             {/* App Version */}
             <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm border-t border-gray-200 dark:border-gray-700">
-              <p className="font-medium">AI Club App v1.0.0</p>
-              <p className="mt-1">© 2024 UT Dallas</p>
+              <p className="font-medium">Uniclub v1.0.0</p>
+              <p className="mt-1">© 2024 Ashwin Thomas</p>
             </div>
           </div>
         </div>

@@ -25,6 +25,12 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/news-curation",
+      "schedule": "0 5 * * *"
+    }
+  ]
 }
 

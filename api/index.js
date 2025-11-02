@@ -1,5 +1,9 @@
-// Proxy all API requests to the uniclub-backend
-const app = require('../uniclub-backend/index.js');
+// Vercel serverless function handler for API routes
+const app = require('../uniclub-backend/index');
 
-module.exports = app;
+// Export as Vercel serverless function
+module.exports = (req, res) => {
+  // Let Express handle the request
+  return app(req, res);
+};
 

